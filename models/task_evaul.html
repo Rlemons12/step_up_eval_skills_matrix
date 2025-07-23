@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Task Complexity Evaluation Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        .evaluation-criteria {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .criteria-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .criteria-item h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .scoring-section {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .scoring-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .score-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .score-item:hover {
+            background-color: #f0f8ff;
+            border-color: #2196f3;
+        }
+        .score-item input[type="radio"] {
+            margin: 10px 0;
+            transform: scale(1.2);
+        }
+        .score-item.selected {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .result-section {
+            background: #d4edda;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+        .result-display {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            color: #155724;
+            margin: 15px 0;
+        }
+        .complexity-breakdown {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .complexity-bar {
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .complexity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #ffc107, #fd7e14, #dc3545);
+            border-radius: 15px;
+            transition: width 0.3s ease;
+        }
+        .complexity-label {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #219a52;
+        }
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #d68910;
+        }
+        .hidden {
+            display: none;
+        }
+        .search-results {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .search-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .search-item:last-child {
+            border-bottom: none;
+        }
+        .search-item h4 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+        .search-item p {
+            margin: 0;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .search-item button {
+            margin-top: 8px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Maintenance Task Complexity Evaluation Form</h1>
+
+        <form id="taskEvaluationForm">
+            <!-- Basic Task Information -->
+            <div class="section">
+                <h2>Task Information</h2>
+                <div class="form-group">
+                    <label for="taskName">Task Name:</label>
+                    <input type="text" id="taskName" name="taskName" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Task Description:</label>
+                    <textarea id="taskDescription" name="taskDescription" placeholder="Detailed description of the task..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="equipment">Equipment/System:</label>
+                    <input type="text" id="equipment" name="equipment" placeholder="e.g., Bag Maker Station 1, Sterilco Unit, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" name="location" placeholder="e.g., Production Floor A, Control Room, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="evaluatorName">Evaluator Name:</label>
+                    <input type="text" id="evaluatorName" name="evaluatorName" placeholder="Your name">
+                </div>
+            </div>
+
+            <!-- Technical Disciplines -->
+            <div class="section">
+                <h2>Technical Disciplines Involved</h2>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="electrical" name="disciplines" value="electrical">
+                        <label for="electrical">Electrical</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="mechanical" name="disciplines" value="mechanical">
+                        <label for="mechanical">Mechanical</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="pneumatic" name="disciplines" value="pneumatic">
+                        <label for="pneumatic">Pneumatic</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="hydraulic" name="disciplines" value="hydraulic">
+                        <label for="hydraulic">Hydraulic</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="controls" name="disciplines" value="controls">
+                        <label for="controls">Controls/Programming</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="instrumentation" name="disciplines" value="instrumentation">
+                        <label for="instrumentation">Instrumentation</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="safety" name="disciplines" value="safety">
+                        <label for="safety">Safety Systems</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="operations" name="disciplines" value="operations">
+                        <label for="operations">Operations/Process</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluation Criteria -->
+            <div class="section">
+                <h2>Complexity Evaluation Criteria</h2>
+                <div class="evaluation-criteria">
+                    <p><strong>Rate each factor from 1-4 based on the task requirements:</strong></p>
+                    <ul>
+                        <li><strong>1 = Basic:</strong> Simple, routine, follows clear procedures</li>
+                        <li><strong>2 = Intermediate:</strong> Some complexity, requires experience</li>
+                        <li><strong>3 = Advanced:</strong> Complex, requires expertise and problem-solving</li>
+                        <li><strong>4 = Expert:</strong> Highly complex, requires mastery and innovation</li>
+                    </ul>
+                </div>
+
+                <div class="criteria-grid">
+                    <div class="criteria-item">
+                        <h4>Technical Knowledge Required</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="technical" data-score="1">
+                                    <input type="radio" name="technical" value="1">
+                                    <div>Basic understanding</div>
+                                </div>
+                                <div class="score-item" data-category="technical" data-score="2">
+                                    <input type="radio" name="technical" value="2">
+                                    <div>Good working knowledge</div>
+                                </div>
+                                <div class="score-item" data-category="technical" data-score="3">
+                                    <input type="radio" name="technical" value="3">
+                                    <div>Advanced expertise</div>
+                                </div>
+                                <div class="score-item" data-category="technical" data-score="4">
+                                    <input type="radio" name="technical" value="4">
+                                    <div>Master level knowledge</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="criteria-item">
+                        <h4>Problem-Solving Complexity</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="problem" data-score="1">
+                                    <input type="radio" name="problem" value="1">
+                                    <div>Follow procedures</div>
+                                </div>
+                                <div class="score-item" data-category="problem" data-score="2">
+                                    <input type="radio" name="problem" value="2">
+                                    <div>Basic troubleshooting</div>
+                                </div>
+                                <div class="score-item" data-category="problem" data-score="3">
+                                    <input type="radio" name="problem" value="3">
+                                    <div>Complex analysis</div>
+                                </div>
+                                <div class="score-item" data-category="problem" data-score="4">
+                                    <input type="radio" name="problem" value="4">
+                                    <div>Root cause analysis</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="criteria-item">
+                        <h4>Decision-Making Authority</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="decision" data-score="1">
+                                    <input type="radio" name="decision" value="1">
+                                    <div>Follows instructions</div>
+                                </div>
+                                <div class="score-item" data-category="decision" data-score="2">
+                                    <input type="radio" name="decision" value="2">
+                                    <div>Some autonomy</div>
+                                </div>
+                                <div class="score-item" data-category="decision" data-score="3">
+                                    <input type="radio" name="decision" value="3">
+                                    <div>Independent decisions</div>
+                                </div>
+                                <div class="score-item" data-category="decision" data-score="4">
+                                    <input type="radio" name="decision" value="4">
+                                    <div>Strategic decisions</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="criteria-item">
+                        <h4>Impact of Errors</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="impact" data-score="1">
+                                    <input type="radio" name="impact" value="1">
+                                    <div>Minor consequences</div>
+                                </div>
+                                <div class="score-item" data-category="impact" data-score="2">
+                                    <input type="radio" name="impact" value="2">
+                                    <div>Moderate impact</div>
+                                </div>
+                                <div class="score-item" data-category="impact" data-score="3">
+                                    <input type="radio" name="impact" value="3">
+                                    <div>Significant impact</div>
+                                </div>
+                                <div class="score-item" data-category="impact" data-score="4">
+                                    <input type="radio" name="impact" value="4">
+                                    <div>Critical impact</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="criteria-item">
+                        <h4>Supervision Required</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="supervision" data-score="1">
+                                    <input type="radio" name="supervision" value="1">
+                                    <div>Close supervision</div>
+                                </div>
+                                <div class="score-item" data-category="supervision" data-score="2">
+                                    <input type="radio" name="supervision" value="2">
+                                    <div>Moderate supervision</div>
+                                </div>
+                                <div class="score-item" data-category="supervision" data-score="3">
+                                    <input type="radio" name="supervision" value="3">
+                                    <div>Minimal supervision</div>
+                                </div>
+                                <div class="score-item" data-category="supervision" data-score="4">
+                                    <input type="radio" name="supervision" value="4">
+                                    <div>Independent/leads others</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="criteria-item">
+                        <h4>Tools & Equipment Complexity</h4>
+                        <div class="scoring-section">
+                            <div class="scoring-grid">
+                                <div class="score-item" data-category="tools" data-score="1">
+                                    <input type="radio" name="tools" value="1">
+                                    <div>Basic hand tools</div>
+                                </div>
+                                <div class="score-item" data-category="tools" data-score="2">
+                                    <input type="radio" name="tools" value="2">
+                                    <div>Standard test equipment</div>
+                                </div>
+                                <div class="score-item" data-category="tools" data-score="3">
+                                    <input type="radio" name="tools" value="3">
+                                    <div>Advanced diagnostics</div>
+                                </div>
+                                <div class="score-item" data-category="tools" data-score="4">
+                                    <input type="radio" name="tools" value="4">
+                                    <div>Specialized/programming tools</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="section">
+                <h2>Additional Information</h2>
+                <div class="form-group">
+                    <label for="prerequisites">Prerequisites/Skills Required:</label>
+                    <textarea id="prerequisites" name="prerequisites" placeholder="e.g., PLC programming knowledge, electrical safety certification, etc."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="safetyConsiderations">Safety Considerations:</label>
+                    <textarea id="safetyConsiderations" name="safetyConsiderations" placeholder="e.g., Lockout/tagout required, confined space entry, etc."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="estimatedTime">Estimated Time to Complete:</label>
+                    <input type="text" id="estimatedTime" name="estimatedTime" placeholder="e.g., 30 minutes, 2 hours, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="frequency">Task Frequency:</label>
+                    <select id="frequency" name="frequency">
+                        <option value="">Select frequency...</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Annually">Annually</option>
+                        <option value="As-Needed">As Needed</option>
+                        <option value="Emergency">Emergency Only</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="evaluationNotes">Evaluation Notes:</label>
+                    <textarea id="evaluationNotes" name="evaluationNotes" placeholder="Additional notes about this evaluation..."></textarea>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="result-section" id="resultSection">
+                <h2>Evaluation Results</h2>
+                <div class="result-display" id="complexityResult">
+                    Complete the evaluation above to see results
+                </div>
+                <div class="complexity-breakdown" id="complexityBreakdown">
+                    <div>
+                        <div class="complexity-bar">
+                            <div class="complexity-fill" id="level1Fill" style="width: 25%"></div>
+                        </div>
+                        <div class="complexity-label">Level 1</div>
+                    </div>
+                    <div>
+                        <div class="complexity-bar">
+                            <div class="complexity-fill" id="level2Fill" style="width: 25%"></div>
+                        </div>
+                        <div class="complexity-label">Level 2</div>
+                    </div>
+                    <div>
+                        <div class="complexity-bar">
+                            <div class="complexity-fill" id="level3Fill" style="width: 25%"></div>
+                        </div>
+                        <div class="complexity-label">Level 3</div>
+                    </div>
+                    <div>
+                        <div class="complexity-bar">
+                            <div class="complexity-fill" id="level4Fill" style="width: 25%"></div>
+                        </div>
+                        <div class="complexity-label">Level 4</div>
+                    </div>
+                </div>
+                <div id="recommendedRole" style="margin-top: 20px; font-size: 16px; text-align: center;"></div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusMessage" class="hidden"></div>
+
+            <!-- Search Results -->
+            <div id="searchResults" class="hidden">
+                <h3>Search Results</h3>
+                <div id="searchResultsContent"></div>
+            </div>
+
+            <!-- Button Group -->
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="clearForm()">Clear Form</button>
+                <button type="button" class="btn-primary" onclick="calculateComplexity()">Calculate Complexity</button>
+                <button type="button" class="btn-success" onclick="saveEvaluation()">Save to Database</button>
+                <button type="button" class="btn-warning" onclick="searchEvaluations()">Search Evaluations</button>
+                <button type="button" class="btn-primary" onclick="viewStatistics()">View Statistics</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for score items
+            document.querySelectorAll('.score-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    document.querySelectorAll(`[data-category="${category}"]`).forEach(i => i.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                    calculateComplexity();
+                });
+            });
+
+            // Add change listeners to all radio buttons
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', calculateComplexity);
+            });
+        });
+
+        function showStatusMessage(message, isSuccess = true) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = isSuccess ? 'status-message status-success' : 'status-message status-error';
+            statusDiv.classList.remove('hidden');
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function calculateComplexity() {
+            const categories = ['technical', 'problem', 'decision', 'impact', 'supervision', 'tools'];
+            let totalScore = 0;
+            let completedCategories = 0;
+
+            categories.forEach(category => {
+                const selected = document.querySelector(`input[name="${category}"]:checked`);
+                if (selected) {
+                    totalScore += parseInt(selected.value);
+                    completedCategories++;
+                }
+            });
+
+            if (completedCategories === 0) {
+                document.getElementById('complexityResult').textContent = 'Complete the evaluation above to see results';
+                return;
+            }
+
+            const averageScore = totalScore / completedCategories;
+            let complexityLevel;
+            let recommendedRole;
+            let description;
+
+            if (averageScore <= 1.5) {
+                complexityLevel = 1;
+                recommendedRole = 'Mechanic I';
+                description = 'Basic Level - Routine tasks with clear procedures';
+            } else if (averageScore <= 2.5) {
+                complexityLevel = 2;
+                recommendedRole = 'Mechanic II';
+                description = 'Intermediate Level - Requires experience and some problem-solving';
+            } else if (averageScore <= 3.5) {
+                complexityLevel = 3;
+                recommendedRole = 'Mechanic III';
+                description = 'Advanced Level - Complex tasks requiring expertise';
+            } else {
+                complexityLevel = 4;
+                recommendedRole = 'Maintenance Technician';
+                description = 'Expert Level - Highly complex tasks requiring mastery';
+            }
+
+            document.getElementById('complexityResult').innerHTML = `
+                <div>Complexity Level: ${complexityLevel}</div>
+                <div style="font-size: 14px; margin-top: 5px;">${description}</div>
+                <div style="font-size: 14px; margin-top: 5px;">Average Score: ${averageScore.toFixed(2)}</div>
+            `;
+
+            document.getElementById('recommendedRole').innerHTML = `
+                <strong>Recommended Role:</strong> ${recommendedRole}
+            `;
+
+            // Update complexity bars
+            updateComplexityBars(averageScore);
+        }
+
+        function updateComplexityBars(score) {
+            const bars = ['level1Fill', 'level2Fill', 'level3Fill', 'level4Fill'];
+            bars.forEach((bar, index) => {
+                const element = document.getElementById(bar);
+                const level = index + 1;
+                const distance = Math.abs(score - level);
+                const opacity = Math.max(0.2, 1 - (distance / 2));
+                element.style.opacity = opacity;
+                element.style.width = score >= level ? '100%' : `${Math.max(20, (score / level) * 100)}%`;
+            });
+        }
+
+        function clearForm() {
+            document.getElementById('taskEvaluationForm').reset();
+            document.querySelectorAll('.score-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            document.getElementById('complexityResult').textContent = 'Complete the evaluation above to see results';
+            document.getElementById('recommendedRole').innerHTML = '';
+            document.getElementById('statusMessage').classList.add('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+
+            // Reset complexity bars
+            document.querySelectorAll('.complexity-fill').forEach(fill => {
+                fill.style.width = '25%';
+                fill.style.opacity = '1';
+            });
+        }
+
+        async function saveEvaluation() {
+            // First calculate complexity to ensure results are up to date
+            calculateComplexity();
+
+            // Get form data
+            const formData = new FormData(document.getElementById('taskEvaluationForm'));
+            const data = Object.fromEntries(formData);
+
+            // Get selected disciplines
+            const disciplines = Array.from(document.querySelectorAll('input[name="disciplines"]:checked')).map(cb => cb.value);
+            data.disciplines = disciplines;
+
+            // Validate required fields
+            if (!data.taskName) {
+                showStatusMessage('Please enter a task name.', false);
+                return;
+            }
+
+            // Check if scoring is complete
+            const categories = ['technical', 'problem', 'decision', 'impact', 'supervision', 'tools'];
+            const missingScores = categories.filter(cat => !data[cat]);
+            if (missingScores.length > 0) {
+                showStatusMessage('Please complete all scoring categories.', false);
+                return;
+            }
+
+            try {
+                // Save to database via Python backend
+                const response = await fetch('/api/evaluations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatusMessage(`Evaluation saved successfully! ID: ${result.evaluation_id}`, true);
+
+                    // Update the results section with the saved evaluation ID
+                    document.getElementById('recommendedRole').innerHTML += `<br><small>Saved as Evaluation ID: ${result.evaluation_id}</small>`;
+                } else {
+                    showStatusMessage(`Error saving evaluation: ${result.message}`, false);
+                }
+            } catch (error) {
+                // If API is not available, save locally
+                console.warn('API not available, saving locally:', error);
+
+                // Create a local save using localStorage alternative or file download
+                const evaluationData = {
+                    ...data,
+                    evaluationId: Date.now(), // Simple ID
+                    evaluationDate: new Date().toISOString(),
+                    complexity: document.getElementById('complexityResult').textContent
+                };
+
+                // Download as JSON file
+                const blob = new Blob([JSON.stringify(evaluationData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `task_evaluation_${data.taskName?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showStatusMessage('API not available. Evaluation downloaded as JSON file.', true);
+            }
+        }
+
+        async function searchEvaluations() {
+            const searchTerm = prompt('Enter search term (task name or description):');
+            if (!searchTerm) return;
+
+            try {
+                const response = await fetch(`/api/evaluations?search=${encodeURIComponent(searchTerm)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displaySearchResults(result.data);
+                } else {
+                    showStatusMessage(`Search failed: ${result.message}`, false);
+                }
+            } catch (error) {
+                showStatusMessage('Search API not available. Please start the Python backend.', false);
+            }
+        }
+
+        function displaySearchResults(results) {
+            const searchDiv = document.getElementById('searchResults');
+            const contentDiv = document.getElementById('searchResultsContent');
+
+            if (results.length === 0) {
+                contentDiv.innerHTML = '<p>No evaluations found.</p>';
+            } else {
+                contentDiv.innerHTML = results.map(result => `
+                    <div class="search-item">
+                        <h4>${result.task_name}</h4>
+                        <p><strong>Equipment:</strong> ${result.equipment_system || 'N/A'}</p>
+                        <p><strong>Complexity:</strong> Level ${result.complexity_level} (${result.recommended_role})</p>
+                        <p><strong>Score:</strong> ${result.overall_score?.toFixed(2) || 'N/A'}</p>
+                        <p><strong>Evaluated:</strong> ${new Date(result.evaluation_date).toLocaleDateString()}</p>
+                        <p><strong>By:</strong> ${result.evaluator_name}</p>
+                        <button class="btn-primary" onclick="loadEvaluation(${result.evaluation_id})">Load Details</button>
+                    </div>
+                `).join('');
+            }
+
+            searchDiv.classList.remove('hidden');
+        }
+
+        async function loadEvaluation(evaluationId) {
+            try {
+                const response = await fetch(`/api/evaluations/${evaluationId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const eval = result.data;
+
+                    // Populate form with evaluation data
+                    document.getElementById('taskName').value = eval.task_name || '';
+                    document.getElementById('taskDescription').value = eval.task_description || '';
+                    document.getElementById('equipment').value = eval.equipment_system || '';
+                    document.getElementById('location').value = eval.location || '';
+                    document.getElementById('evaluatorName').value = eval.metadata.evaluator_name || '';
+                    document.getElementById('prerequisites').value = eval.additional_info.prerequisites || '';
+                    document.getElementById('safetyConsiderations').value = eval.additional_info.safety_considerations || '';
+                    document.getElementById('estimatedTime').value = eval.additional_info.estimated_time || '';
+                    document.getElementById('frequency').value = eval.additional_info.task_frequency || '';
+                    document.getElementById('evaluationNotes').value = eval.metadata.evaluation_notes || '';
+
+                    // Set disciplines
+                    document.querySelectorAll('input[name="disciplines"]').forEach(cb => {
+                        cb.checked = eval.disciplines.includes(cb.value);
+                    });
+
+                    // Set scores
+                    Object.entries(eval.scores).forEach(([key, value]) => {
+                        if (value) {
+                            const radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                            if (radio) {
+                                radio.checked = true;
+                                radio.closest('.score-item').classList.add('selected');
+                            }
+                        }
+                    });
+
+                    // Recalculate complexity
+                    calculateComplexity();
+
+                    showStatusMessage(`Loaded evaluation: ${eval.task_name}`, true);
+                } else {
+                    showStatusMessage(`Error loading evaluation: ${result.message}`, false);
+                }
+            } catch (error) {
+                showStatusMessage('Load API not available. Please start the Python backend.', false);
+            }
+        }
+
+        async function viewStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const result = await response.json();
+
+                if (result.success) {
+                    const stats = result.data;
+                    const statsHTML = `
+                        <div class="search-results" style="background: #e8f5e8;">
+                            <h3>Evaluation Statistics</h3>
+                            <p><strong>Total Evaluations:</strong> ${stats.total_evaluations}</p>
+                            <h4>Complexity Distribution:</h4>
+                            <ul>
+                                <li>Level 1 (Mechanic I): ${stats.complexity_distribution.level_1}</li>
+                                <li>Level 2 (Mechanic II): ${stats.complexity_distribution.level_2}</li>
+                                <li>Level 3 (Mechanic III): ${stats.complexity_distribution.level_3}</li>
+                                <li>Level 4 (Maintenance Technician): ${stats.complexity_distribution.level_4}</li>
+                            </ul>
+                            <h4>Average Scores:</h4>
+                            <ul>
+                                <li>Technical Knowledge: ${stats.average_scores.technical.toFixed(2)}</li>
+                                <li>Problem Solving: ${stats.average_scores.problem.toFixed(2)}</li>
+                                <li>Decision Making: ${stats.average_scores.decision.toFixed(2)}</li>
+                                <li>Impact of Errors: ${stats.average_scores.impact.toFixed(2)}</li>
+                                <li>Supervision Required: ${stats.average_scores.supervision.toFixed(2)}</li>
+                                <li>Tools & Equipment: ${stats.average_scores.tools.toFixed(2)}</li>
+                            </ul>
+                        </div>
+                    `;
+
+                    document.getElementById('searchResultsContent').innerHTML = statsHTML;
+                    document.getElementById('searchResults').classList.remove('hidden');
+                } else {
+                    showStatusMessage(`Error getting statistics: ${result.message}`, false);
+                }
+            } catch (error) {
+                showStatusMessage('Statistics API not available. Please start the Python backend.', false);
+            }
+        }
+    </script>
+</body>
+</html>
