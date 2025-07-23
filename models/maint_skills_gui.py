@@ -174,26 +174,29 @@ class EmployeeViewerApp:
         self.setup_buttons(parent=self.employee_tab)
         self.refresh_employee_list()
 
+        self.step_up_eval_tab = StepUpEvalTab(self.notebook, session)
+        self.notebook.add(self.step_up_eval_tab, text="Step-Up Eval")
+
         # Second tab: Skills Matrix Assignment
-        self.skills_matrix_tab = SkillsMatrixAssignmentTab(self.notebook, session)
-        self.notebook.add(self.skills_matrix_tab, text="Skills Matrix Assignment")
+        #self.skills_matrix_tab = SkillsMatrixAssignmentTab(self.notebook, session)
+        #self.notebook.add(self.skills_matrix_tab, text="Skills Matrix Assignment")
 
         # NEW: Competency Assignment Form tab
         self.competency_assignment_tab = CompetencyAssignmentFormTab(self.notebook, session)
         self.notebook.add(self.competency_assignment_tab, text="Competency Assignment Form")
 
         # Pass the skills matrix tab reference to the task CRUD tabs!
-        self.mechanical_task_tab = SkillTaskCrudTab(self.notebook, session, "Mechanical", self.skills_matrix_tab)
-        self.notebook.add(self.mechanical_task_tab, text="Mechanical Tasks")
+        #self.mechanical_task_tab = SkillTaskCrudTab(self.notebook, session, "Mechanical", self.skills_matrix_tab)
+        #self.notebook.add(self.mechanical_task_tab, text="Mechanical Tasks")
 
-        self.electrical_task_tab = SkillTaskCrudTab(self.notebook, session, "Electrical", self.skills_matrix_tab)
-        self.notebook.add(self.electrical_task_tab, text="Electrical Tasks")
+        #self.electrical_task_tab = SkillTaskCrudTab(self.notebook, session, "Electrical", self.skills_matrix_tab)
+        #self.notebook.add(self.electrical_task_tab, text="Electrical Tasks")
 
-        self.tool_task_tab = SkillTaskCrudTab(self.notebook, session, "Tool", self.skills_matrix_tab)
-        self.notebook.add(self.tool_task_tab, text="Tool Tasks")
+        #self.tool_task_tab = SkillTaskCrudTab(self.notebook, session, "Tool", self.skills_matrix_tab)
+        #self.notebook.add(self.tool_task_tab, text="Tool Tasks")
 
-        self.operational_task_tab = SkillTaskCrudTab(self.notebook, session, "Operational", self.skills_matrix_tab)
-        self.notebook.add(self.operational_task_tab, text="Operational Tasks")
+        #self.operational_task_tab = SkillTaskCrudTab(self.notebook, session, "Operational", self.skills_matrix_tab)
+        #self.notebook.add(self.operational_task_tab, text="Operational Tasks")
 
         # Skill Category CRUD tabs (after other tabs)
         self.technical_category_tab = SkillCategoryCrudTab(self.notebook, session, "TechnicalSkillCategory")
@@ -211,9 +214,6 @@ class EmployeeViewerApp:
         # NEW: Operational Types tab
         self.operational_type_tab = SkillCategoryCrudTab(self.notebook, session, "OperationalType")
         self.notebook.add(self.operational_type_tab, text="Operational Types")
-
-        self.step_up_eval_tab = StepUpEvalTab(self.notebook, session)
-        self.notebook.add(self.step_up_eval_tab, text="Step-Up Eval")
 
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
@@ -366,314 +366,6 @@ class EmployeeViewerApp:
         except Exception as e:
             session.rollback()
             messagebox.showerror("Error", f"Could not delete employee: {e}")
-
-class SkillsMatrixAssignmentTab(ttk.Frame):
-    def __init__(self, parent, session):
-        super().__init__(parent)
-        self.session = session
-
-        # AreaChecklist selector
-        ttk.Label(self, text="Area:").grid(row=0, column=0, sticky='e', pady=5)
-        self.area_var = tk.StringVar()
-        self.area_combo = ttk.Combobox(self, textvariable=self.area_var, state="readonly", width=40)
-        self.area_combo.grid(row=0, column=1, sticky='w', pady=5)
-        self.area_combo.bind("<<ComboboxSelected>>", self.load_sections)
-
-        # ChecklistSection selector
-        ttk.Label(self, text="Section:").grid(row=1, column=0, sticky='e', pady=5)
-        self.section_var = tk.StringVar()
-        self.section_combo = ttk.Combobox(self, textvariable=self.section_var, state="readonly", width=40)
-        self.section_combo.grid(row=1, column=1, sticky='w', pady=5)
-        self.section_combo.bind("<<ComboboxSelected>>", self.load_tasks)
-
-        # ChecklistTask selector
-        ttk.Label(self, text="Checklist Task:").grid(row=2, column=0, sticky='e', pady=5)
-        self.task_var = tk.StringVar()
-        self.task_combo = ttk.Combobox(self, textvariable=self.task_var, state="readonly", width=40)
-        self.task_combo.grid(row=2, column=1, sticky='w', pady=5)
-        self.task_combo.bind("<<ComboboxSelected>>", self.display_assignments)
-
-        # Assignments display
-        self.assignment_frame = ttk.LabelFrame(self, text="Assigned Skill Tasks")
-        self.assignment_frame.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=10, padx=5)
-        self.assignment_text = tk.Text(self.assignment_frame, height=6, width=85, state='disabled')
-        self.assignment_text.pack(fill='both', expand=True, padx=5, pady=5)
-
-        # Add assignment controls
-        add_frame = ttk.LabelFrame(self, text="Add Skill Task Assignment")
-        add_frame.grid(row=4, column=0, columnspan=2, sticky='ew', padx=5, pady=5)
-
-        ttk.Label(add_frame, text="Mechanical Task:").grid(row=0, column=0, sticky='e')
-        self.add_mech_var = tk.StringVar()
-        self.add_mech_combo = ttk.Combobox(add_frame, textvariable=self.add_mech_var, state="readonly", width=30)
-        self.add_mech_combo.grid(row=0, column=1, sticky='w', padx=5)
-
-        ttk.Label(add_frame, text="Electrical Task:").grid(row=0, column=2, sticky='e')
-        self.add_elec_var = tk.StringVar()
-        self.add_elec_combo = ttk.Combobox(add_frame, textvariable=self.add_elec_var, state="readonly", width=30)
-        self.add_elec_combo.grid(row=0, column=3, sticky='w', padx=5)
-
-        ttk.Label(add_frame, text="Tool Task:").grid(row=0, column=4, sticky='e')
-        self.add_tool_var = tk.StringVar()
-        self.add_tool_combo = ttk.Combobox(add_frame, textvariable=self.add_tool_var, state="readonly", width=30)
-        self.add_tool_combo.grid(row=0, column=5, sticky='w', padx=5)
-
-        # -------- New: Operational Task ----------
-        ttk.Label(add_frame, text="Operational Task:").grid(row=0, column=6, sticky='e')
-        self.add_oper_var = tk.StringVar()
-        self.add_oper_combo = ttk.Combobox(add_frame, textvariable=self.add_oper_var, state="readonly", width=30)
-        self.add_oper_combo.grid(row=0, column=7, sticky='w', padx=5)
-        # -----------------------------------------
-
-        ttk.Button(add_frame, text="Add Assignment", command=self.add_assignment).grid(row=0, column=8, padx=10)
-
-        ttk.Button(self.assignment_frame, text="Remove Selected Assignment", command=self.remove_selected_assignment).pack(pady=5)
-        ttk.Button(self.assignment_frame, text="Edit Selected Assignment", command=self.edit_selected_assignment).pack(pady=5)
-
-        self.populate_areas()
-        self.populate_skill_combos()
-
-        self.selected_checklist_task_id = None
-        self.assignment_list = []
-        self.refresh_tasks()
-
-    def edit_selected_assignment(self):
-        if not self.selected_checklist_task_id or not self.assignment_list:
-            messagebox.showwarning("No Assignment", "No assignment to edit.")
-            return
-        answer = simpledialog.askinteger("Edit Assignment", "Enter the assignment number to edit:")
-        if not answer or answer < 1 or answer > len(self.assignment_list):
-            return
-        to_edit = self.assignment_list[answer - 1]
-
-        edit_win = tk.Toplevel(self)
-        edit_win.title("Edit Skill Task Assignment")
-        edit_win.grab_set()
-
-        tk.Label(edit_win, text="Mechanical Task:").grid(row=0, column=0, sticky='e')
-        mech_var = tk.StringVar(value="")
-        mech_combo = ttk.Combobox(edit_win, textvariable=mech_var, state="readonly", width=30)
-        mech_combo['values'] = [desc for _id, desc in self.add_mech_choices]
-        mech_combo.grid(row=0, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Electrical Task:").grid(row=1, column=0, sticky='e')
-        elec_var = tk.StringVar(value="")
-        elec_combo = ttk.Combobox(edit_win, textvariable=elec_var, state="readonly", width=30)
-        elec_combo['values'] = [desc for _id, desc in self.add_elec_choices]
-        elec_combo.grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Tool Task:").grid(row=2, column=0, sticky='e')
-        tool_var = tk.StringVar(value="")
-        tool_combo = ttk.Combobox(edit_win, textvariable=tool_var, state="readonly", width=30)
-        tool_combo['values'] = [desc for _id, desc in self.add_tool_choices]
-        tool_combo.grid(row=2, column=1, padx=5, pady=5)
-
-        # -------- New: Operational Task ----------
-        tk.Label(edit_win, text="Operational Task:").grid(row=3, column=0, sticky='e')
-        oper_var = tk.StringVar(value="")
-        oper_combo = ttk.Combobox(edit_win, textvariable=oper_var, state="readonly", width=30)
-        oper_combo['values'] = [desc for _id, desc in self.add_oper_choices]
-        oper_combo.grid(row=3, column=1, padx=5, pady=5)
-        # -----------------------------------------
-
-        # Pre-select the existing task type
-        if to_edit.mechanical_task:
-            mech_var.set(f"{to_edit.mechanical_task.task_action} {to_edit.mechanical_task.task_object}")
-        elif to_edit.electrical_task:
-            elec_var.set(f"{to_edit.electrical_task.task_action} {to_edit.electrical_task.task_object}")
-        elif to_edit.tool_task:
-            tool_var.set(f"{to_edit.tool_task.task_action} {to_edit.tool_task.task_object}")
-        elif hasattr(to_edit, "operational_task") and to_edit.operational_task:
-            oper_var.set(f"{to_edit.operational_task.task_action} {to_edit.operational_task.task_object}")
-
-        def save_edit():
-            mech_index = mech_combo.current()
-            elec_index = elec_combo.current()
-            tool_index = tool_combo.current()
-            oper_index = oper_combo.current()
-            if all(idx <= 0 for idx in (mech_index, elec_index, tool_index, oper_index)):
-                messagebox.showwarning("No Task Selected", "Select at least one skill task to assign.")
-                return
-            if sum(idx > 0 for idx in (mech_index, elec_index, tool_index, oper_index)) > 1:
-                messagebox.showwarning("Only One Type", "Assign only one type of skill task at a time.")
-                return
-            # Set all to None, then update the selected
-            to_edit.mechanical_task_id = None
-            to_edit.electrical_task_id = None
-            to_edit.tool_task_id = None
-            to_edit.operational_task_id = None
-            if mech_index > 0:
-                to_edit.mechanical_task_id = self.add_mech_choices[mech_index][0]
-            elif elec_index > 0:
-                to_edit.electrical_task_id = self.add_elec_choices[elec_index][0]
-            elif tool_index > 0:
-                to_edit.tool_task_id = self.add_tool_choices[tool_index][0]
-            elif oper_index > 0:
-                to_edit.operational_task_id = self.add_oper_choices[oper_index][0]
-            try:
-                self.session.commit()
-                self.display_assignments()
-                messagebox.showinfo("Success", "Assignment updated!")
-                edit_win.destroy()
-            except Exception as e:
-                self.session.rollback()
-                messagebox.showerror("Error", f"Failed to update assignment: {e}")
-
-        ttk.Button(edit_win, text="Save", command=save_edit).grid(row=4, column=0, columnspan=2, pady=10)
-
-        edit_win.transient(self)
-        edit_win.wait_window(edit_win)
-
-    def populate_areas(self):
-        self.area_objects = self.session.query(AreaChecklist).all()
-        self.area_choices = [
-            (area.id, f"{area.area or ''} - {area.description or ''}") for area in self.area_objects
-        ]
-        self.area_combo['values'] = [desc for _id, desc in self.area_choices]
-        self.area_var.set('')
-        self.section_combo['values'] = []
-        self.task_combo['values'] = []
-        self.assignment_text.config(state='normal')
-        self.assignment_text.delete("1.0", tk.END)
-        self.assignment_text.config(state='disabled')
-
-    def load_sections(self, event=None):
-        area_index = self.area_combo.current()
-        if area_index == -1:
-            self.section_combo['values'] = []
-            self.task_combo['values'] = []
-            self.clear_assignments()
-            return
-        area_id = self.area_choices[area_index][0]
-        area_obj = self.session.query(AreaChecklist).get(area_id)
-        sections = area_obj.sections
-        self.section_objects = sections
-        self.section_choices = [(s.id, s.section_name) for s in sections]
-        self.section_combo['values'] = [desc for _id, desc in self.section_choices]
-        self.section_var.set('')
-        self.task_combo['values'] = []
-        self.clear_assignments()
-
-    def load_tasks(self, event=None):
-        section_index = self.section_combo.current()
-        if section_index == -1:
-            self.task_combo['values'] = []
-            self.clear_assignments()
-            return
-        section_id = self.section_choices[section_index][0]
-        section_obj = self.session.query(ChecklistSection).get(section_id)
-        tasks = section_obj.tasks
-        self.task_objects = tasks
-        self.task_choices = [(t.id, t.task_description) for t in tasks]
-        self.task_combo['values'] = [desc for _id, desc in self.task_choices]
-        self.task_var.set('')
-        self.clear_assignments()
-
-    def display_assignments(self, event=None):
-        task_index = self.task_combo.current()
-        if task_index == -1:
-            self.clear_assignments()
-            return
-        self.selected_checklist_task_id = self.task_choices[task_index][0]
-        task_obj = self.session.query(ChecklistTask).get(self.selected_checklist_task_id)
-        self.assignment_list = task_obj.skill_assignments
-
-        self.assignment_text.config(state='normal')
-        self.assignment_text.delete("1.0", tk.END)
-        for idx, assign in enumerate(self.assignment_list):
-            desc = ""
-            if assign.mechanical_task:
-                desc = f"Mechanical: {assign.mechanical_task.task_action} {assign.mechanical_task.task_object}"
-            elif assign.electrical_task:
-                desc = f"Electrical: {assign.electrical_task.task_action} {assign.electrical_task.task_object}"
-            elif assign.tool_task:
-                desc = f"Tool: {assign.tool_task.task_action} {assign.tool_task.task_object}"
-            elif hasattr(assign, "operational_task") and assign.operational_task:
-                desc = f"Operational: {assign.operational_task.task_action} {assign.operational_task.task_object}"
-            self.assignment_text.insert(tk.END, f"{idx+1}. {desc}\n")
-        self.assignment_text.config(state='disabled')
-
-    def clear_assignments(self):
-        self.assignment_text.config(state='normal')
-        self.assignment_text.delete("1.0", tk.END)
-        self.assignment_text.config(state='disabled')
-        self.selected_checklist_task_id = None
-        self.assignment_list = []
-
-    def populate_skill_combos(self):
-        self.mech_tasks = self.session.query(MechanicalTask).all()
-        self.elec_tasks = self.session.query(ElectricalTask).all()
-        self.tool_tasks = self.session.query(ToolTask).all()
-        self.oper_tasks = self.session.query(OperationalTask).all()
-
-        self.add_mech_choices = [("", "")] + [(m.id, f"{m.task_action} {m.task_object}") for m in self.mech_tasks]
-        self.add_elec_choices = [("", "")] + [(e.id, f"{e.task_action} {e.task_object}") for e in self.elec_tasks]
-        self.add_tool_choices = [("", "")] + [(t.id, f"{t.task_action} {t.task_object}") for t in self.tool_tasks]
-        self.add_oper_choices = [("", "")] + [(o.id, f"{o.task_action} {o.task_object}") for o in self.oper_tasks]
-
-        self.add_mech_combo['values'] = [desc for _id, desc in self.add_mech_choices]
-        self.add_elec_combo['values'] = [desc for _id, desc in self.add_elec_choices]
-        self.add_tool_combo['values'] = [desc for _id, desc in self.add_tool_choices]
-        self.add_oper_combo['values'] = [desc for _id, desc in self.add_oper_choices]
-
-    def add_assignment(self):
-        if not self.selected_checklist_task_id:
-            messagebox.showwarning("No Checklist Task", "Select a checklist task first!")
-            return
-        mech_index = self.add_mech_combo.current()
-        elec_index = self.add_elec_combo.current()
-        tool_index = self.add_tool_combo.current()
-        oper_index = self.add_oper_combo.current()
-        if all(idx <= 0 for idx in (mech_index, elec_index, tool_index, oper_index)):
-            messagebox.showwarning("No Task Selected", "Select at least one skill task to assign.")
-            return
-        if sum(idx > 0 for idx in (mech_index, elec_index, tool_index, oper_index)) > 1:
-            messagebox.showwarning("Only One Type", "Assign only one type of skill task at a time.")
-            return
-
-        assignment_kwargs = {'checklist_task_id': self.selected_checklist_task_id}
-        if mech_index > 0:
-            assignment_kwargs['mechanical_task_id'] = self.add_mech_choices[mech_index][0]
-        elif elec_index > 0:
-            assignment_kwargs['electrical_task_id'] = self.add_elec_choices[elec_index][0]
-        elif tool_index > 0:
-            assignment_kwargs['tool_task_id'] = self.add_tool_choices[tool_index][0]
-        elif oper_index > 0:
-            assignment_kwargs['operational_task_id'] = self.add_oper_choices[oper_index][0]
-
-        assignment = TaskSkillAssignment(**assignment_kwargs)
-        self.session.add(assignment)
-        try:
-            self.session.commit()
-            self.display_assignments()
-            messagebox.showinfo("Success", "Skill task assigned!")
-        except Exception as e:
-            self.session.rollback()
-            messagebox.showerror("Error", f"Failed to assign skill task: {e}")
-
-    def remove_selected_assignment(self):
-        if not self.selected_checklist_task_id or not self.assignment_list:
-            messagebox.showwarning("No Assignment", "No assignment to remove.")
-            return
-        answer = simpledialog.askinteger("Remove Assignment", "Enter the assignment number to remove:")
-        if not answer or answer < 1 or answer > len(self.assignment_list):
-            return
-        to_remove = self.assignment_list[answer - 1]
-        self.session.delete(to_remove)
-        try:
-            self.session.commit()
-            self.display_assignments()
-            messagebox.showinfo("Removed", "Assignment removed.")
-        except Exception as e:
-            self.session.rollback()
-            messagebox.showerror("Error", f"Failed to remove assignment: {e}")
-
-    def refresh_tasks(self):
-        self.mechanical_tasks = self.session.query(MechanicalTask).all()
-        self.electrical_tasks = self.session.query(ElectricalTask).all()
-        self.tool_tasks = self.session.query(ToolTask).all()
-        self.operational_tasks = self.session.query(OperationalTask).all()
-        # (If you want to update dropdowns elsewhere, do it here.)
 
 class SkillTaskCrudTab(ttk.Frame):
     def __init__(self, parent, session, skill_type, skills_matrix_tab=None):
@@ -895,12 +587,13 @@ class SkillCategoryCrudTab(ttk.Frame):
 
         elif category_type == "MechanicalSubCategory":
             self.CategoryModel = MechanicalSkill
-            self.display_columns = ["sub_category", "mechanical_type", "equipment_category", "description"]
+            # REMOVED: "mechanical_type" from display_columns
+            self.display_columns = ["sub_category", "equipment_category", "description"]
             self.dialog_fields = [
                 ("sub_category", "Mechanical System", "Combo",
                  ["Hydraulic Systems", "Pneumatic Systems", "Belt/Chain Drive", "Bearing Systems",
                   "Pump Systems", "Motor Systems", "Conveyor Systems"]),
-                ("mechanical_type", "Mechanical Type", "Entry"),
+                # REMOVED: ("mechanical_type", "Mechanical Type", "Entry"),
                 ("equipment_category", "Equipment Category", "Entry"),
                 ("description", "Description", "Entry"),
             ]
@@ -909,13 +602,14 @@ class SkillCategoryCrudTab(ttk.Frame):
 
         elif category_type == "ElectricalSubCategory":
             self.CategoryModel = ElectricalSkill
-            self.display_columns = ["sub_category", "voltage_level", "electrical_type", "description"]
+            # REMOVED: "electrical_type" from display_columns
+            self.display_columns = ["sub_category", "voltage_level", "description"]
             self.dialog_fields = [
                 ("sub_category", "Electrical System", "Combo",
                  ["Low Voltage Wiring", "High Voltage Wiring", "Control Circuits & Sensors",
                   "VFDs", "MCC", "Motor Controls"]),
                 ("voltage_level", "Voltage Level", "Combo", ["Low", "High", "Low/High"]),
-                ("electrical_type", "Electrical Type", "Entry"),
+                # REMOVED: ("electrical_type", "Electrical Type", "Entry"),
                 ("description", "Description", "Entry"),
             ]
             self.label_text = "Electrical Subcategories"
@@ -990,10 +684,34 @@ class SkillCategoryCrudTab(ttk.Frame):
     def refresh_category_list(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
-        cats = self.session.query(self.CategoryModel).all()
+
+        # Filter by specific polymorphic identity to avoid inheritance issues
+        if self.category_type == "MechanicalSubCategory":
+            cats = self.session.query(self.CategoryModel).filter(
+                self.CategoryModel.competency_type == 'mechanical'
+            ).all()
+        elif self.category_type == "ElectricalSubCategory":
+            cats = self.session.query(self.CategoryModel).filter(
+                self.CategoryModel.competency_type == 'electrical'
+            ).all()
+        elif self.category_type == "ToolType":
+            cats = self.session.query(self.CategoryModel).filter(
+                self.CategoryModel.competency_type == 'tools'
+            ).all()
+        elif self.category_type == "OperationalType":
+            cats = self.session.query(self.CategoryModel).filter(
+                self.CategoryModel.competency_type == 'operational'
+            ).all()
+        else:
+            # For TechnicalSkillCategory, get only the base level
+            cats = self.session.query(self.CategoryModel).filter(
+                self.CategoryModel.competency_type == 'technical'
+            ).all()
+
         for c in cats:
             values = []
             for col in self.display_columns:
+                # Use getattr with a default value to handle missing attributes gracefully
                 val = getattr(c, col, "")
                 values.append(val if val is not None else "")
             self.tree.insert('', 'end', iid=c.id, values=values)
@@ -1008,17 +726,13 @@ class SkillCategoryCrudTab(ttk.Frame):
             values["competency_name"] = f"Mechanical - {values.get('sub_category', '')}"
             values["skill_category"] = "Mechanical"
             values["competency_type"] = "mechanical"  # CRITICAL: Set polymorphic identity
-            # Auto-set mechanical_type from sub_category if not provided
-            if not values.get("mechanical_type") and values.get("sub_category"):
-                values["mechanical_type"] = values["sub_category"].split()[0]  # e.g., "Hydraulic" from "Hydraulic Systems"
+            # REMOVED: Auto-set mechanical_type logic
 
         elif self.category_type == "ElectricalSubCategory":
             values["competency_name"] = f"Electrical - {values.get('sub_category', '')}"
             values["skill_category"] = "Electrical"
             values["competency_type"] = "electrical"  # CRITICAL: Set polymorphic identity
-            # Auto-set electrical_type from sub_category if not provided
-            if not values.get("electrical_type") and values.get("sub_category"):
-                values["electrical_type"] = values["sub_category"].split()[0]
+            # REMOVED: Auto-set electrical_type logic
 
         elif self.category_type == "ToolType":
             values["competency_name"] = f"Tools - {values.get('tool_type', '')}"
@@ -1074,15 +788,13 @@ class SkillCategoryCrudTab(ttk.Frame):
             values["competency_name"] = f"Mechanical - {values.get('sub_category', '')}"
             values["skill_category"] = "Mechanical"
             values["competency_type"] = "mechanical"  # CRITICAL: Set polymorphic identity
-            if not values.get("mechanical_type") and values.get("sub_category"):
-                values["mechanical_type"] = values["sub_category"].split()[0]
+            # REMOVED: Auto-set mechanical_type logic
 
         elif self.category_type == "ElectricalSubCategory":
             values["competency_name"] = f"Electrical - {values.get('sub_category', '')}"
             values["skill_category"] = "Electrical"
             values["competency_type"] = "electrical"  # CRITICAL: Set polymorphic identity
-            if not values.get("electrical_type") and values.get("sub_category"):
-                values["electrical_type"] = values["sub_category"].split()[0]
+            # REMOVED: Auto-set electrical_type logic
 
         elif self.category_type == "ToolType":
             values["competency_name"] = f"Tools - {values.get('tool_type', '')}"
@@ -1299,6 +1011,7 @@ class SkillCategoryCrudTab(ttk.Frame):
         return examples.get(self.category_type, "")
 
 class CompetencyAssignmentFormTab(ttk.Frame):
+
     def __init__(self, parent, session):
         """
         Initialize the Competency Assignment Form Tab.
@@ -1342,54 +1055,310 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.reset_form()
         self.populate_checklist_dropdowns()
 
-
     def create_checklist_section(self, parent):
         # Checklist Task Selection
-        checklist_frame = ttk.LabelFrame(parent, text="1. Select Checklist Task", padding=10)
+        checklist_frame = ttk.LabelFrame(parent, text="1. Select or Create Checklist Task", padding=10)
         checklist_frame.pack(fill='x', pady=(0, 10))
 
         # Add description label
-        desc_label = ttk.Label(checklist_frame, text="Select the checklist task you want to assign competencies to.",
+        desc_label = ttk.Label(checklist_frame, text="Choose to use an existing checklist task or create a new one.",
                                font=('TkDefaultFont', 9), foreground='gray')
-        desc_label.grid(row=0, column=0, columnspan=4, sticky='w', pady=(0, 10)) # 45
+        desc_label.grid(row=0, column=0, columnspan=4, sticky='w', pady=(0, 10))
 
+        # Mode selection radio buttons
+        self.task_mode_var = tk.StringVar(value="existing")
+
+        mode_frame = ttk.Frame(checklist_frame)
+        mode_frame.grid(row=1, column=0, columnspan=4, sticky='w', pady=(0, 15))
+
+        ttk.Radiobutton(mode_frame, text="Use Existing Task",
+                        variable=self.task_mode_var, value="existing",
+                        command=self.on_task_mode_changed).pack(side='left', padx=(0, 20))
+
+        ttk.Radiobutton(mode_frame, text="Create New Task",
+                        variable=self.task_mode_var, value="create",
+                        command=self.on_task_mode_changed).pack(side='left')
+
+        # Dynamic content frame that changes based on mode
+        self.task_selection_frame = ttk.Frame(checklist_frame)
+        self.task_selection_frame.grid(row=2, column=0, columnspan=4, sticky='ew', pady=(0, 5))
+        checklist_frame.grid_columnconfigure(0, weight=1)
+
+        # Create the initial form (existing task mode)
+        self.create_existing_task_widgets()
+
+    def on_task_mode_changed(self):
+        """Handle switching between existing task and create new task modes"""
+        # Clear the current widgets
+        for widget in self.task_selection_frame.winfo_children():
+            widget.destroy()
+
+        # Reset current task
+        self.current_checklist_task = None
+
+        if self.task_mode_var.get() == "existing":
+            self.create_existing_task_widgets()
+        else:
+            self.create_new_task_widgets()
+
+    def create_existing_task_widgets(self):
+        """Create widgets for selecting existing tasks"""
         # Area dropdown
-        ttk.Label(checklist_frame, text="Area:").grid(row=1, column=0, sticky='e', padx=(0, 5))
+        ttk.Label(self.task_selection_frame, text="Area:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.area_var = tk.StringVar()
-        self.area_combo = ttk.Combobox(checklist_frame, textvariable=self.area_var,
+        self.area_combo = ttk.Combobox(self.task_selection_frame, textvariable=self.area_var,
                                        state="readonly", width=50)
-        self.area_combo.grid(row=1, column=1, sticky='w', padx=(0, 10))
+        self.area_combo.grid(row=0, column=1, sticky='w', padx=(0, 10))
         self.area_combo.bind("<<ComboboxSelected>>", self.on_area_selected)
         # Help text for area
-        area_help = ttk.Label(checklist_frame, text="The work area or location (e.g., 'Production Floor', 'Warehouse')",
+        area_help = ttk.Label(self.task_selection_frame,
+                              text="The work area or location (e.g., 'Production Floor', 'Warehouse')",
                               font=('TkDefaultFont', 8), foreground='blue')
-        area_help.grid(row=1, column=2, sticky='w', padx=(10, 0))
+        area_help.grid(row=0, column=2, sticky='w', padx=(10, 0))
 
         # Section dropdown
-        ttk.Label(checklist_frame, text="Section:").grid(row=2, column=0, sticky='e', padx=(0, 5), pady=(5, 0))
+        ttk.Label(self.task_selection_frame, text="Section:").grid(row=1, column=0, sticky='e', padx=(0, 5),
+                                                                   pady=(5, 0))
         self.section_var = tk.StringVar()
-        self.section_combo = ttk.Combobox(checklist_frame, textvariable=self.section_var,
+        self.section_combo = ttk.Combobox(self.task_selection_frame, textvariable=self.section_var,
                                           state="readonly", width=50)
-        self.section_combo.grid(row=2, column=1, sticky='w', padx=(0, 10), pady=(5, 0))
+        self.section_combo.grid(row=1, column=1, sticky='w', padx=(0, 10), pady=(5, 0))
         self.section_combo.bind("<<ComboboxSelected>>", self.on_section_selected)
         # Help text for section
-        section_help = ttk.Label(checklist_frame,
+        section_help = ttk.Label(self.task_selection_frame,
                                  text="The section within the checklist (e.g., 'Daily Inspections', 'Monthly Maintenance')",
                                  font=('TkDefaultFont', 8), foreground='blue')
-        section_help.grid(row=2, column=2, sticky='w', padx=(10, 0), pady=(5, 0))
+        section_help.grid(row=1, column=2, sticky='w', padx=(10, 0), pady=(5, 0))
 
         # Task dropdown
-        ttk.Label(checklist_frame, text="Task:").grid(row=3, column=0, sticky='e', padx=(0, 5), pady=(5, 0))
+        ttk.Label(self.task_selection_frame, text="Task:").grid(row=2, column=0, sticky='e', padx=(0, 5), pady=(5, 0))
         self.task_var = tk.StringVar()
-        self.task_combo = ttk.Combobox(checklist_frame, textvariable=self.task_var,
+        self.task_combo = ttk.Combobox(self.task_selection_frame, textvariable=self.task_var,
                                        state="readonly", width=50)
-        self.task_combo.grid(row=3, column=1, sticky='w', padx=(0, 10), pady=(5, 0))
+        self.task_combo.grid(row=2, column=1, sticky='w', padx=(0, 10), pady=(5, 0))
         self.task_combo.bind("<<ComboboxSelected>>", self.on_task_selected)
         # Help text for task
-        task_help = ttk.Label(checklist_frame,
+        task_help = ttk.Label(self.task_selection_frame,
                               text="The specific task from the checklist (e.g., 'Rebuild Solution Pump')",
                               font=('TkDefaultFont', 8), foreground='blue')
-        task_help.grid(row=3, column=2, sticky='w', padx=(10, 0), pady=(5, 0))
+        task_help.grid(row=2, column=2, sticky='w', padx=(10, 0), pady=(5, 0))
+
+        # Populate dropdowns if they exist
+        if hasattr(self, 'area_choices'):
+            self.populate_existing_task_dropdowns()
+
+    def create_new_task_widgets(self):
+        """Create widgets for creating new tasks"""
+        # Area dropdown (same as existing, but for new task creation)
+        ttk.Label(self.task_selection_frame, text="Area:").grid(row=0, column=0, sticky='e', padx=(0, 5))
+        self.new_area_var = tk.StringVar()
+        self.new_area_combo = ttk.Combobox(self.task_selection_frame, textvariable=self.new_area_var,
+                                           state="readonly", width=50)
+        self.new_area_combo.grid(row=0, column=1, sticky='w', padx=(0, 10))
+        self.new_area_combo.bind("<<ComboboxSelected>>", self.on_new_area_selected)
+        # Help text for area
+        new_area_help = ttk.Label(self.task_selection_frame, text="Select the work area for the new task",
+                                  font=('TkDefaultFont', 8), foreground='blue')
+        new_area_help.grid(row=0, column=2, sticky='w', padx=(10, 0))
+
+        # Section selection/creation
+        section_frame = ttk.Frame(self.task_selection_frame)
+        section_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(10, 0))
+
+        ttk.Label(section_frame, text="Section:").grid(row=0, column=0, sticky='e', padx=(0, 5))
+
+        # Section mode selection
+        self.section_mode_var = tk.StringVar(value="existing")
+
+        section_mode_frame = ttk.Frame(section_frame)
+        section_mode_frame.grid(row=0, column=1, sticky='w', padx=(0, 10))
+
+        ttk.Radiobutton(section_mode_frame, text="Use Existing",
+                        variable=self.section_mode_var, value="existing",
+                        command=self.on_section_mode_changed).pack(side='left', padx=(0, 10))
+
+        ttk.Radiobutton(section_mode_frame, text="Create New",
+                        variable=self.section_mode_var, value="create",
+                        command=self.on_section_mode_changed).pack(side='left')
+
+        # Dynamic section selection frame
+        self.section_selection_frame = ttk.Frame(section_frame)
+        self.section_selection_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(5, 0))
+
+        # Create initial section widgets (existing mode)
+        self.create_section_selection_widgets()
+
+        # New task description
+        ttk.Label(self.task_selection_frame, text="New Task Description:").grid(row=2, column=0, sticky='ne',
+                                                                                padx=(0, 5), pady=(15, 0))
+        self.new_task_var = tk.StringVar()
+        self.new_task_entry = ttk.Entry(self.task_selection_frame, textvariable=self.new_task_var, width=50)
+        self.new_task_entry.grid(row=2, column=1, sticky='w', padx=(0, 10), pady=(15, 0))
+
+        # Help text for new task
+        new_task_help = ttk.Label(self.task_selection_frame,
+                                  text="Enter the description for the new task (e.g., 'Rebuild Solution Pump')",
+                                  font=('TkDefaultFont', 8), foreground='blue')
+        new_task_help.grid(row=2, column=2, sticky='w', padx=(10, 0), pady=(15, 0))
+
+        # Create Task button
+        create_task_btn = ttk.Button(self.task_selection_frame, text="Create Task",
+                                     command=self.create_new_checklist_task)
+        create_task_btn.grid(row=3, column=1, sticky='w', padx=(0, 10), pady=(10, 0))
+
+        # Populate area dropdown
+        self.populate_new_task_dropdowns()
+
+    def on_section_mode_changed(self):
+        """Handle switching between existing section and create new section"""
+        # Clear current section widgets
+        for widget in self.section_selection_frame.winfo_children():
+            widget.destroy()
+
+        self.create_section_selection_widgets()
+
+    def create_section_selection_widgets(self):
+        """Create widgets for section selection based on mode"""
+        if self.section_mode_var.get() == "existing":
+            # Existing section dropdown
+            self.new_section_var = tk.StringVar()
+            self.new_section_combo = ttk.Combobox(self.section_selection_frame, textvariable=self.new_section_var,
+                                                  state="readonly", width=50)
+            self.new_section_combo.grid(row=0, column=0, sticky='w')
+
+            section_help = ttk.Label(self.section_selection_frame,
+                                     text="Select an existing section",
+                                     font=('TkDefaultFont', 8), foreground='blue')
+            section_help.grid(row=0, column=1, sticky='w', padx=(10, 0))
+        else:
+            # New section entry
+            self.new_section_name_var = tk.StringVar()
+            self.new_section_entry = ttk.Entry(self.section_selection_frame, textvariable=self.new_section_name_var,
+                                               width=50)
+            self.new_section_entry.grid(row=0, column=0, sticky='w')
+
+            section_help = ttk.Label(self.section_selection_frame,
+                                     text="Enter new section name (e.g., 'Weekly Maintenance')",
+                                     font=('TkDefaultFont', 8), foreground='blue')
+            section_help.grid(row=0, column=1, sticky='w', padx=(10, 0))
+
+    def on_new_area_selected(self, event=None):
+        """Handle area selection for new task creation"""
+        if not hasattr(self, 'new_section_combo'):
+            return
+
+        area_index = self.new_area_combo.current()
+        if area_index == -1:
+            self.new_section_combo['values'] = []
+            return
+
+        try:
+            area_id = self.area_choices[area_index][0]
+            sections = self.session.query(ChecklistSection).filter_by(checklist_id=area_id).all()
+            section_choices = [s.section_name for s in sections]
+            self.new_section_combo['values'] = section_choices
+            self.new_section_var.set('')
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load sections: {e}")
+
+    def create_new_checklist_task(self):
+        """Create a new checklist task and set it as current"""
+        # Validate inputs
+        area_index = self.new_area_combo.current()
+        if area_index == -1:
+            messagebox.showwarning("Missing Area", "Please select an area.")
+            return
+
+        task_description = self.new_task_var.get().strip()
+        if not task_description:
+            messagebox.showwarning("Missing Task Description", "Please enter a task description.")
+            return
+
+        try:
+            area_id = self.area_choices[area_index][0]
+            area = self.session.query(AreaChecklist).get(area_id)
+
+            # Handle section creation/selection
+            section = None
+            if self.section_mode_var.get() == "existing":
+                section_name = self.new_section_var.get().strip()
+                if not section_name:
+                    messagebox.showwarning("Missing Section", "Please select a section.")
+                    return
+
+                # Find existing section
+                section = self.session.query(ChecklistSection).filter_by(
+                    checklist_id=area_id,
+                    section_name=section_name
+                ).first()
+
+                if not section:
+                    messagebox.showerror("Section Not Found", f"Section '{section_name}' not found.")
+                    return
+            else:
+                # Create new section
+                section_name = self.new_section_name_var.get().strip()
+                if not section_name:
+                    messagebox.showwarning("Missing Section Name", "Please enter a section name.")
+                    return
+
+                # Check if section already exists
+                existing_section = self.session.query(ChecklistSection).filter_by(
+                    checklist_id=area_id,
+                    section_name=section_name
+                ).first()
+
+                if existing_section:
+                    messagebox.showwarning("Section Exists",
+                                           f"Section '{section_name}' already exists. Please choose a different name.")
+                    return
+
+                # Create new section
+                # Get next section order
+                max_order = self.session.query(ChecklistSection.section_order).filter_by(
+                    checklist_id=area_id
+                ).order_by(ChecklistSection.section_order.desc()).first()
+                next_order = (max_order[0] + 1) if max_order and max_order[0] else 1
+
+                section = ChecklistSection(
+                    checklist_id=area_id,
+                    section_name=section_name,
+                    section_order=next_order
+                )
+                self.session.add(section)
+                self.session.flush()  # Get the ID
+
+            # Create the new task
+            # Get next task order
+            max_task_order = self.session.query(ChecklistTask.task_order).filter_by(
+                section_id=section.id
+            ).order_by(ChecklistTask.task_order.desc()).first()
+            next_task_order = (max_task_order[0] + 1) if max_task_order and max_task_order[0] else 1
+
+            new_task = ChecklistTask(
+                section_id=section.id,
+                task_description=task_description,
+                task_order=next_task_order
+            )
+            self.session.add(new_task)
+            self.session.commit()
+
+            # Set as current task
+            self.current_checklist_task = new_task
+
+            # Update UI to show success
+            messagebox.showinfo("Success",
+                                f"Created new task: '{task_description}' in section '{section.section_name}'")
+
+            # Auto-populate task object from task description (same logic as existing)
+            words = task_description.split()
+            if len(words) >= 2:
+                potential_object = " ".join(words[1:])  # Everything after first word
+                self.task_object_var.set(potential_object)
+
+        except Exception as e:
+            self.session.rollback()
+            messagebox.showerror("Error", f"Failed to create new task: {e}")
 
     def create_competency_type_section(self, parent):
         # Competency Type Selection
@@ -1521,16 +1490,32 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.preview_text.pack(fill='both', expand=True)
 
     def populate_checklist_dropdowns(self):
-        """Populate the area dropdown"""
+        """Populate the area dropdown for both modes"""
         try:
             areas = self.session.query(AreaChecklist).all()
             self.area_choices = [(area.id, f"{area.area or ''} - {area.description or ''}") for area in areas]
-            self.area_combo['values'] = [desc for _id, desc in self.area_choices]
+
+            # Populate based on current mode
+            if self.task_mode_var.get() == "existing":
+                self.populate_existing_task_dropdowns()
+            else:
+                self.populate_new_task_dropdowns()
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load areas: {e}")
 
+    def populate_existing_task_dropdowns(self):
+        """Populate dropdowns for existing task mode"""
+        if hasattr(self, 'area_combo') and hasattr(self, 'area_choices'):
+            self.area_combo['values'] = [desc for _id, desc in self.area_choices]
+
+    def populate_new_task_dropdowns(self):
+        """Populate dropdowns for new task mode"""
+        if hasattr(self, 'new_area_combo') and hasattr(self, 'area_choices'):
+            self.new_area_combo['values'] = [desc for _id, desc in self.area_choices]
+
     def on_area_selected(self, event=None):
-        """Handle area selection"""
+        """Handle area selection for existing tasks"""
         area_index = self.area_combo.current()
         if area_index == -1:
             self.section_combo['values'] = []
@@ -1549,7 +1534,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             messagebox.showerror("Error", f"Failed to load sections: {e}")
 
     def on_section_selected(self, event=None):
-        """Handle section selection"""
+        """Handle section selection for existing tasks"""
         section_index = self.section_combo.current()
         if section_index == -1:
             self.task_combo['values'] = []
@@ -1589,10 +1574,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             messagebox.showerror("Error", f"Failed to load task details: {e}")
 
     def on_competency_type_selected(self):
-        """Handle competency type selection and update dynamic section"""
         comp_type = self.competency_type_var.get()
 
-        # Clear existing dynamic widgets
         for widget in self.dynamic_frame.winfo_children():
             widget.destroy()
         self.dynamic_widgets.clear()
@@ -1605,7 +1588,14 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             self.create_tools_section()
         elif comp_type == "operational":
             self.create_operational_section()
-        # Add other competency types as needed
+        elif comp_type == "safety":
+            self.create_safety_section()
+        elif comp_type == "training":
+            self.create_training_section()
+        elif comp_type == "communication":
+            self.create_communication_section()
+        elif comp_type == "leadership":
+            self.create_leadership_section()
 
     def refresh_dropdowns(self):
         """Refresh dropdown options from database - call this when tab becomes active"""
@@ -2235,10 +2225,14 @@ class CompetencyAssignmentFormTab(ttk.Frame):
     def preview_assignment(self):
         """Preview the assignment that will be created"""
         if not self.current_checklist_task:
-            messagebox.showwarning("No Task", "Please select a checklist task first.")
+            if self.task_mode_var.get() == "existing":
+                messagebox.showwarning("No Task", "Please select a checklist task first.")
+            else:
+                messagebox.showwarning("No Task", "Please create a checklist task first.")
             return
 
         preview_text = f"Checklist Task: {self.current_checklist_task.task_description}\n"
+        preview_text += f"Task Mode: {'Existing' if self.task_mode_var.get() == 'existing' else 'Newly Created'}\n"
         preview_text += f"Competency Type: {self.competency_type_var.get()}\n"
 
         comp_type = self.competency_type_var.get()
@@ -2258,7 +2252,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
     def save_assignment(self):
         """Save the competency assignment"""
         if not self.current_checklist_task:
-            messagebox.showwarning("No Task", "Please select a checklist task first.")
+            if self.task_mode_var.get() == "existing":
+                messagebox.showwarning("No Task", "Please select a checklist task first.")
+            else:
+                messagebox.showwarning("No Task", "Please create a checklist task first.")
             return
 
         if not self.competency_type_var.get():
@@ -2281,6 +2278,14 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 self.create_tools_assignment()
             elif comp_type == "operational":
                 self.create_operational_assignment()
+            elif comp_type == "safety":
+                self.create_safety_assignment()
+            elif comp_type == "training":
+                self.create_training_assignment()
+            elif comp_type == "communication":
+                self.create_communication_assignment()
+            elif comp_type == "leadership":
+                self.create_leadership_assignment()
             else:
                 messagebox.showinfo("Not Implemented", f"{comp_type} competency type not yet implemented.")
                 return
@@ -2311,7 +2316,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'skill_category': 'Mechanical',
                 'competency_type': 'mechanical',
                 'sub_category': sub_category,
-                'mechanical_type': sub_category.split()[0] if sub_category else None,
+                # REMOVED: 'mechanical_type': sub_category.split()[0] if sub_category else None,
                 'equipment_category': equipment_category,
                 'level': level_value,
                 'proficiency_level': proficiency_value
@@ -2343,7 +2348,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'skill_category': 'Mechanical',
                 'competency_type': 'mechanical_task',
                 'sub_category': skill.sub_category,
-                'mechanical_type': skill.mechanical_type,
+                # REMOVED: 'mechanical_type': skill.mechanical_type,
                 'equipment_category': skill.equipment_category,
                 'task_action': self.task_action_var.get(),
                 'task_object': self.task_object_var.get(),
@@ -2400,16 +2405,16 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'electrical',
                 'sub_category': widgets['subcategory'].get(),
                 'voltage_level': widgets['voltage'].get(),
-                'electrical_type': widgets['subcategory'].get().split()[0],
+                # REMOVED: 'electrical_type': widgets['subcategory'].get().split()[0],
                 'level': widgets['level'].get() or None,
                 'proficiency_level': widgets.get('proficiency', tk.StringVar()).get() or None
             }
 
-            # Find by ALL unique fields
+            # Find by ALL unique fields (removed electrical_type from filter)
             existing_skill = self.session.query(ElectricalSkill).filter_by(
                 sub_category=skill_data['sub_category'],
                 voltage_level=skill_data['voltage_level'],
-                electrical_type=skill_data['electrical_type'],
+                # REMOVED: electrical_type=skill_data['electrical_type'],
                 level=skill_data['level'],
                 proficiency_level=skill_data['proficiency_level']
             ).first()
@@ -2433,7 +2438,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'electrical_task',
                 'sub_category': skill.sub_category,
                 'voltage_level': skill.voltage_level,
-                'electrical_type': skill.electrical_type,
+                # REMOVED: 'electrical_type': skill.electrical_type,
                 'task_action': self.task_action_var.get(),
                 'task_object': self.task_object_var.get(),
                 'verification_method': self.verification_text.get('1.0', tk.END).strip()
@@ -2461,6 +2466,13 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             )
             self.session.add(task_assignment)
             self.session.commit()
+
+            print(f"✅ Created electrical competency assignment:")
+            print(f"   - Base Competency: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
+            print(f"   - Specific Task: {task.task_action} {task.task_object} (ID: {task.id})")
+            print(f"   - Linked to Checklist Task: {self.current_checklist_task.task_description}")
 
         except Exception as e:
             self.session.rollback()
@@ -2666,9 +2678,11 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
     def reset_form(self):
         """Reset all form fields"""
-        self.area_var.set('')
-        self.section_var.set('')
-        self.task_var.set('')
+        # Reset task mode to existing
+        self.task_mode_var.set("existing")
+        self.on_task_mode_changed()
+
+        # Reset other form fields
         self.competency_type_var.set('')
         self.task_action_var.set('')
         self.task_object_var.set('')
@@ -2685,104 +2699,607 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.preview_text.delete('1.0', tk.END)
         self.preview_text.config(state='disabled')
 
+        # Repopulate dropdowns
+        self.populate_checklist_dropdowns()
+
     def get_current_competency_name(self):
         comp_type = self.competency_type_var.get()
         if comp_type in self.dynamic_widgets and 'competency_name' in self.dynamic_widgets[comp_type]:
             return self.dynamic_widgets[comp_type]['competency_name'].get().strip()
         return ""
 
-import tkinter as tk
-from tkinter import ttk, messagebox
+    def create_safety_section(self):
+        """Create safety-specific form fields."""
 
-import tkinter as tk
-from tkinter import ttk, messagebox
+        # --- Competency Name field (per-section) ---
+        safety_comp_name_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Competency Name:").grid(row=0, column=0, sticky='e', pady=(0, 2))
+        ttk.Entry(self.dynamic_frame, textvariable=safety_comp_name_var, width=40).grid(
+            row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
+        )
+
+        # --- Level field (just below Competency Name) ---
+        self.safety_level_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
+        self.safety_level_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.safety_level_var,
+            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
+        )
+        self.safety_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.safety_level_combo.set("Level 1")
+
+        # --- Add description ---
+        desc_label = ttk.Label(self.dynamic_frame,
+                               text="Specify the safety topic or standard and competency details.",
+                               font=('TkDefaultFont', 9), foreground='gray')
+        desc_label.grid(row=2, column=0, columnspan=4, sticky='w', pady=(0, 10))
+
+        # --- Safety Subcategory (from DB or fallback) ---
+        ttk.Label(self.dynamic_frame, text="Safety Topic:").grid(row=3, column=0, sticky='e', padx=(0, 5))
+        self.safety_subcategory_var = tk.StringVar()
+        subcats = self.get_safety_subcategories()
+        self.safety_subcategory_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.safety_subcategory_var,
+            values=subcats, width=25
+        )
+        self.safety_subcategory_combo.grid(row=3, column=1, sticky='w', padx=(0, 20))
+
+        # --- Regulatory Standard (optional, e.g. OSHA, LOTO, etc.) ---
+        ttk.Label(self.dynamic_frame, text="Regulatory Standard:").grid(row=3, column=2, sticky='e', padx=(0, 5))
+        self.safety_reg_var = tk.StringVar()
+        self.safety_reg_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.safety_reg_var,
+            values=["OSHA", "LOTO", "PPE", "Fire Safety", "Ergonomics", "Other"], width=20
+        )
+        self.safety_reg_combo.grid(row=3, column=3, sticky='w')
+
+        # --- Examples ---
+        examples_label = ttk.Label(self.dynamic_frame, text="Examples:", font=('TkDefaultFont', 9, 'bold'))
+        examples_label.grid(row=5, column=0, sticky='w', pady=(10, 5))
+        examples_text = tk.Text(self.dynamic_frame, height=3, width=80, font=('TkDefaultFont', 8))
+        examples_text.grid(row=6, column=0, columnspan=4, sticky='w')
+        examples_text.insert('1.0',
+            "• LOTO - OSHA (for Lockout/Tagout procedures)\n"
+            "• PPE - OSHA (for personal protective equipment use)\n"
+            "• Fire Safety - Local Code (for fire extinguisher training)\n"
+            "• Ergonomics - Other (for safe lifting techniques)")
+        examples_text.config(state='disabled')
+
+        # Register all section-specific variables for saving
+        self.dynamic_widgets['safety'] = {
+            'competency_name': safety_comp_name_var,
+            'subcategory': self.safety_subcategory_var,
+            'regulatory_standard': self.safety_reg_var,
+            'level': self.safety_level_var
+        }
+
+    def get_safety_subcategories(self):
+        """Get safety subcategories from DB or fallback."""
+        try:
+            safety_skills = self.session.query(CoreCompetency).filter(
+                CoreCompetency.competency_type == 'safety'
+            ).all()
+            subcats = [skill.competency_name for skill in safety_skills if skill.competency_name]
+            subcats = sorted(list(set(subcats)))
+            if subcats:
+                return subcats
+        except Exception:
+            pass
+        return ["LOTO", "PPE", "Fire Safety", "HazCom", "Confined Space", "Ergonomics", "Chemical Safety"]
+
+    def create_safety_assignment(self):
+        """Create safety competency and task assignment with linking."""
+        widgets = self.dynamic_widgets['safety']
+        custom_name = widgets['competency_name'].get().strip()
+        subcategory = widgets['subcategory'].get().strip()
+        regulatory_standard = widgets['regulatory_standard'].get().strip()
+        level_value = widgets['level'].get().strip() or None
+
+        try:
+            # 1. Create or get the CoreCompetency for Safety
+            skill_data = {
+                'competency_name': custom_name,
+                'description': f"{subcategory} - {regulatory_standard}",
+                'competency_type': 'safety',
+                'level': level_value,
+            }
+
+            # Use all fields for uniqueness
+            existing_skill = self.session.query(CoreCompetency).filter_by(
+                competency_name=custom_name,
+                description=skill_data['description'],
+                competency_type='safety',
+                level=level_value
+            ).first()
+
+            if existing_skill:
+                skill = existing_skill
+                skill.description = skill_data['description']
+                skill.level = level_value
+            else:
+                skill = CoreCompetency(**skill_data)
+                self.session.add(skill)
+                self.session.flush()
+
+            # 2. Link checklist task to base competency
+            existing_competency_link = self.session.query(ChecklistTaskCompetency).filter_by(
+                checklist_task_id=self.current_checklist_task.id,
+                competency_id=skill.id
+            ).first()
+            if not existing_competency_link:
+                competency_assignment = ChecklistTaskCompetency(
+                    checklist_task_id=self.current_checklist_task.id,
+                    competency_id=skill.id
+                )
+                self.session.add(competency_assignment)
+
+            # 3. Optionally, add a TaskSkillAssignment or SafetyTask if you have a model for safety tasks
+            # If not, just skip this. You may want to model a SafetyTask class for parallelism.
+
+            self.session.commit()
+            print(f"✅ Created safety competency assignment: {skill.competency_name} (ID: {skill.id})")
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def create_training_section(self):
+        """Create training-specific form fields."""
+
+        # Competency Name
+        training_comp_name_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Competency Name:").grid(row=0, column=0, sticky='e', pady=(0, 2))
+        ttk.Entry(self.dynamic_frame, textvariable=training_comp_name_var, width=40).grid(
+            row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
+        )
+
+        # Level
+        self.training_level_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
+        self.training_level_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.training_level_var,
+            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
+        )
+        self.training_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.training_level_combo.set("Level 1")
+
+        # Training Type
+        ttk.Label(self.dynamic_frame, text="Training Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
+        self.training_type_var = tk.StringVar()
+        self.training_type_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.training_type_var,
+            values=["Mentoring", "Knowledge Transfer", "Skill Development"], width=20
+        )
+        self.training_type_combo.grid(row=2, column=1, sticky='w', padx=(0, 20))
+
+        # Training Method
+        ttk.Label(self.dynamic_frame, text="Training Method:").grid(row=2, column=2, sticky='e', padx=(0, 5))
+        self.training_method_var = tk.StringVar()
+        self.training_method_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.training_method_var,
+            values=["One-on-one", "Group", "Hands-on", "Classroom"], width=20
+        )
+        self.training_method_combo.grid(row=2, column=3, sticky='w')
+
+        # Examples
+        examples_label = ttk.Label(self.dynamic_frame, text="Examples:", font=('TkDefaultFont', 9, 'bold'))
+        examples_label.grid(row=3, column=0, sticky='w', pady=(10, 5))
+        examples_text = tk.Text(self.dynamic_frame, height=3, width=80, font=('TkDefaultFont', 8))
+        examples_text.grid(row=4, column=0, columnspan=4, sticky='w')
+        examples_text.insert('1.0',
+                             "• Mentoring - One-on-one (Senior mentoring junior tech)\n"
+                             "• Knowledge Transfer - Group (Group classroom training)\n"
+                             "• Skill Development - Hands-on (Hands-on practice on machine)")
+        examples_text.config(state='disabled')
+
+        self.dynamic_widgets['training'] = {
+            'competency_name': training_comp_name_var,
+            'training_type': self.training_type_var,
+            'training_method': self.training_method_var,
+            'level': self.training_level_var
+        }
+
+    def create_communication_section(self):
+        """Create communication-specific form fields."""
+
+        # Competency Name
+        comm_comp_name_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Competency Name:").grid(row=0, column=0, sticky='e', pady=(0, 2))
+        ttk.Entry(self.dynamic_frame, textvariable=comm_comp_name_var, width=40).grid(
+            row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
+        )
+
+        # Level
+        self.comm_level_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
+        self.comm_level_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.comm_level_var,
+            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
+        )
+        self.comm_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.comm_level_combo.set("Level 1")
+
+        # Communication Method
+        ttk.Label(self.dynamic_frame, text="Communication Method:").grid(row=2, column=0, sticky='e', padx=(0, 5))
+        self.communication_method_var = tk.StringVar()
+        self.communication_method_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.communication_method_var,
+            values=["Verbal", "Written", "Technical", "Presentation"], width=20
+        )
+        self.communication_method_combo.grid(row=2, column=1, sticky='w', padx=(0, 20))
+
+        # Audience
+        ttk.Label(self.dynamic_frame, text="Audience:").grid(row=2, column=2, sticky='e', padx=(0, 5))
+        self.communication_audience_var = tk.StringVar()
+        self.communication_audience_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.communication_audience_var,
+            values=["Peer", "Supervisor", "Team", "Customer", "Executive"], width=20
+        )
+        self.communication_audience_combo.grid(row=2, column=3, sticky='w')
+
+        # Examples
+        examples_label = ttk.Label(self.dynamic_frame, text="Examples:", font=('TkDefaultFont', 9, 'bold'))
+        examples_label.grid(row=3, column=0, sticky='w', pady=(10, 5))
+        examples_text = tk.Text(self.dynamic_frame, height=3, width=80, font=('TkDefaultFont', 8))
+        examples_text.grid(row=4, column=0, columnspan=4, sticky='w')
+        examples_text.insert('1.0',
+                             "• Technical - Team (Explaining SOPs to maintenance team)\n"
+                             "• Presentation - Executive (Presenting KPIs to managers)\n"
+                             "• Written - Customer (Writing maintenance reports for customers)")
+        examples_text.config(state='disabled')
+
+        self.dynamic_widgets['communication'] = {
+            'competency_name': comm_comp_name_var,
+            'communication_method': self.communication_method_var,
+            'communication_audience': self.communication_audience_var,
+            'level': self.comm_level_var
+        }
+
+    def create_leadership_section(self):
+        """Create leadership-specific form fields."""
+
+        # Competency Name
+        lead_comp_name_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Competency Name:").grid(row=0, column=0, sticky='e', pady=(0, 2))
+        ttk.Entry(self.dynamic_frame, textvariable=lead_comp_name_var, width=40).grid(
+            row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
+        )
+
+        # Level
+        self.lead_level_var = tk.StringVar()
+        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
+        self.lead_level_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.lead_level_var,
+            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
+        )
+        self.lead_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.lead_level_combo.set("Level 1")
+
+        # Leadership Type
+        ttk.Label(self.dynamic_frame, text="Leadership Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
+        self.leadership_type_var = tk.StringVar()
+        self.leadership_type_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.leadership_type_var,
+            values=["Team Direction", "Conflict Resolution", "Decision Making"], width=20
+        )
+        self.leadership_type_combo.grid(row=2, column=1, sticky='w', padx=(0, 20))
+
+        # Scope
+        ttk.Label(self.dynamic_frame, text="Scope:").grid(row=2, column=2, sticky='e', padx=(0, 5))
+        self.leadership_scope_var = tk.StringVar()
+        self.leadership_scope_combo = ttk.Combobox(
+            self.dynamic_frame, textvariable=self.leadership_scope_var,
+            values=["Individual", "Team", "Department", "Organization"], width=20
+        )
+        self.leadership_scope_combo.grid(row=2, column=3, sticky='w')
+
+        # Examples
+        examples_label = ttk.Label(self.dynamic_frame, text="Examples:", font=('TkDefaultFont', 9, 'bold'))
+        examples_label.grid(row=3, column=0, sticky='w', pady=(10, 5))
+        examples_text = tk.Text(self.dynamic_frame, height=3, width=80, font=('TkDefaultFont', 8))
+        examples_text.grid(row=4, column=0, columnspan=4, sticky='w')
+        examples_text.insert('1.0',
+                             "• Team Direction - Team (Leading daily shift meetings)\n"
+                             "• Conflict Resolution - Individual (Resolving disputes among technicians)\n"
+                             "• Decision Making - Organization (Making staffing decisions for site)")
+        examples_text.config(state='disabled')
+
+        self.dynamic_widgets['leadership'] = {
+            'competency_name': lead_comp_name_var,
+            'leadership_type': self.leadership_type_var,
+            'leadership_scope': self.leadership_scope_var,
+            'level': self.lead_level_var
+        }
+
+    def create_training_assignment(self):
+        widgets = self.dynamic_widgets['training']
+        custom_name = widgets['competency_name'].get().strip()
+        level_value = widgets['level'].get().strip() or None
+        training_type = widgets['training_type'].get().strip()
+        training_method = widgets['training_method'].get().strip()
+
+        try:
+            skill_data = {
+                'competency_name': custom_name,
+                'description': f"{training_type} - {training_method}",
+                'competency_type': 'training',
+                'training_type': training_type,
+                'training_method': training_method,
+                'level': level_value
+            }
+
+            existing_skill = self.session.query(TrainingCompetency).filter_by(
+                training_type=training_type,
+                training_method=training_method,
+                level=level_value
+            ).first()
+
+            if existing_skill:
+                skill = existing_skill
+                skill.competency_name = custom_name
+                skill.description = skill_data['description']
+                skill.level = level_value
+            else:
+                skill = TrainingCompetency(**skill_data)
+                self.session.add(skill)
+                self.session.flush()
+
+            existing_competency_link = self.session.query(ChecklistTaskCompetency).filter_by(
+                checklist_task_id=self.current_checklist_task.id,
+                competency_id=skill.id
+            ).first()
+            if not existing_competency_link:
+                competency_assignment = ChecklistTaskCompetency(
+                    checklist_task_id=self.current_checklist_task.id,
+                    competency_id=skill.id
+                )
+                self.session.add(competency_assignment)
+
+            self.session.commit()
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def create_communication_assignment(self):
+        widgets = self.dynamic_widgets['communication']
+        custom_name = widgets['competency_name'].get().strip()
+        level_value = widgets['level'].get().strip() or None
+        method = widgets['communication_method'].get().strip()
+        audience = widgets['communication_audience'].get().strip()
+
+        try:
+            skill_data = {
+                'competency_name': custom_name,
+                'description': f"{method} to {audience}",
+                'competency_type': 'communication',
+                'communication_method': method,
+                'communication_audience': audience,
+                'level': level_value
+            }
+
+            existing_skill = self.session.query(CommunicationCompetency).filter_by(
+                communication_method=method,
+                communication_audience=audience,
+                level=level_value
+            ).first()
+
+            if existing_skill:
+                skill = existing_skill
+                skill.competency_name = custom_name
+                skill.description = skill_data['description']
+                skill.level = level_value
+            else:
+                skill = CommunicationCompetency(**skill_data)
+                self.session.add(skill)
+                self.session.flush()
+
+            existing_competency_link = self.session.query(ChecklistTaskCompetency).filter_by(
+                checklist_task_id=self.current_checklist_task.id,
+                competency_id=skill.id
+            ).first()
+            if not existing_competency_link:
+                competency_assignment = ChecklistTaskCompetency(
+                    checklist_task_id=self.current_checklist_task.id,
+                    competency_id=skill.id
+                )
+                self.session.add(competency_assignment)
+
+            self.session.commit()
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def create_leadership_assignment(self):
+        widgets = self.dynamic_widgets['leadership']
+        custom_name = widgets['competency_name'].get().strip()
+        level_value = widgets['level'].get().strip() or None
+        lead_type = widgets['leadership_type'].get().strip()
+        scope = widgets['leadership_scope'].get().strip()
+
+        try:
+            skill_data = {
+                'competency_name': custom_name,
+                'description': f"{lead_type} for {scope}",
+                'competency_type': 'leadership',
+                'leadership_type': lead_type,
+                'leadership_scope': scope,
+                'level': level_value
+            }
+
+            existing_skill = self.session.query(LeadershipCompetency).filter_by(
+                leadership_type=lead_type,
+                leadership_scope=scope,
+                level=level_value
+            ).first()
+
+            if existing_skill:
+                skill = existing_skill
+                skill.competency_name = custom_name
+                skill.description = skill_data['description']
+                skill.level = level_value
+            else:
+                skill = LeadershipCompetency(**skill_data)
+                self.session.add(skill)
+                self.session.flush()
+
+            existing_competency_link = self.session.query(ChecklistTaskCompetency).filter_by(
+                checklist_task_id=self.current_checklist_task.id,
+                competency_id=skill.id
+            ).first()
+            if not existing_competency_link:
+                competency_assignment = ChecklistTaskCompetency(
+                    checklist_task_id=self.current_checklist_task.id,
+                    competency_id=skill.id
+                )
+                self.session.add(competency_assignment)
+
+            self.session.commit()
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
 
 class StepUpEvalTab(ttk.Frame):
     def __init__(self, parent, session):
         super().__init__(parent)
         self.session = session
 
-        # --- Employee Dropdown ---
-        ttk.Label(self, text="Employee:").grid(row=0, column=0, sticky="e")
+        # Configure the main frame to expand
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # Create main canvas and scrollbar for vertical scrolling
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        # Configure scrolling
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Pack canvas and scrollbar
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Configure the scrollable frame to expand
+        self.scrollable_frame.grid_columnconfigure(0, weight=1)
+        self.scrollable_frame.grid_columnconfigure(1, weight=1)
+
+        # Create the form in the scrollable frame
+        self.create_form()
+
+        # Bind mousewheel to canvas for scrolling
+        self.bind_mousewheel()
+
+    def create_form(self):
+        # --- Employee ---
+        ttk.Label(self.scrollable_frame, text="Employee").grid(row=0, column=0, sticky="w", padx=5, pady=(5, 0))
         self.employee_var = tk.StringVar()
-        self.employee_combo = ttk.Combobox(self, textvariable=self.employee_var, state="readonly", width=30)
-        self.employee_combo.grid(row=0, column=1, padx=5, pady=5)
+        self.employee_combo = ttk.Combobox(self.scrollable_frame, textvariable=self.employee_var, state="readonly")
+        self.employee_combo.grid(row=1, column=0, padx=5, pady=(0, 5), sticky="ew")
         self.load_employees()
         self.employee_combo.bind("<<ComboboxSelected>>", self.on_employee_selected)
 
-        # --- Checklist Task Dropdown ---
-        ttk.Label(self, text="Checklist Task:").grid(row=1, column=0, sticky="e")
-        self.task_var = tk.StringVar()
-        self.task_combo = ttk.Combobox(self, textvariable=self.task_var, state="readonly", width=45)
-        self.task_combo.grid(row=1, column=1, padx=5, pady=5)
-        self.load_tasks()
-
-        # --- Proficiency Level ---
-        ttk.Label(self, text="Proficiency:").grid(row=2, column=0, sticky="e")
-        self.proficiency_var = tk.StringVar()
-        self.proficiency_combo = ttk.Combobox(
-            self, textvariable=self.proficiency_var,
-            values=["Basic", "Intermediate", "Advanced"], state="readonly", width=20
-        )
-        self.proficiency_combo.grid(row=2, column=1, padx=5, pady=5)
-
         # --- Level ---
-        ttk.Label(self, text="Level:").grid(row=3, column=0, sticky="e")
+        ttk.Label(self.scrollable_frame, text="Level").grid(row=2, column=0, sticky="w", padx=5, pady=(5, 0))
         self.level_var = tk.StringVar()
         self.level_combo = ttk.Combobox(
-            self, textvariable=self.level_var,
-            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], state="readonly", width=20
+            self.scrollable_frame, textvariable=self.level_var,
+            values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], state="readonly"
         )
-        self.level_combo.grid(row=3, column=1, padx=5, pady=5)
+        self.level_combo.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="ew")
         self.level_combo.set("Level 1")
 
         # --- Assign All Tasks for Level Button ---
-        ttk.Button(self, text="Assign All Tasks For This Level", command=self.assign_all_level_tasks)\
-            .grid(row=3, column=2, padx=5, pady=5)
+        ttk.Button(self.scrollable_frame, text="Assign All Tasks For This Level", command=self.assign_all_level_tasks) \
+            .grid(row=3, column=1, padx=20, pady=(0, 5), sticky="w")
 
         # --- Status ---
-        ttk.Label(self, text="Status:").grid(row=4, column=0, sticky="e")
+        ttk.Label(self.scrollable_frame, text="Status").grid(row=4, column=0, sticky="w", padx=5, pady=(5, 0))
         self.status_var = tk.StringVar()
-        self.status_combo = ttk.Combobox(self, textvariable=self.status_var,
-                                         values=["Active", "Expired", "Needs Renewal"], state="readonly", width=20)
-        self.status_combo.grid(row=4, column=1, padx=5, pady=5)
+        self.status_combo = ttk.Combobox(self.scrollable_frame, textvariable=self.status_var,
+                                         values=["Active", "Expired", "Needs Renewal"], state="readonly")
+        self.status_combo.grid(row=5, column=0, padx=5, pady=(0, 5), sticky="ew")
         self.status_combo.set("Active")
 
         # --- Date Achieved ---
-        ttk.Label(self, text="Date Achieved:").grid(row=5, column=0, sticky="e")
-        self.date_entry = ttk.Entry(self)
-        self.date_entry.grid(row=5, column=1, padx=5, pady=5)
+        ttk.Label(self.scrollable_frame, text="Date Achieved").grid(row=6, column=0, sticky="w", padx=5, pady=(5, 0))
+        self.date_entry = ttk.Entry(self.scrollable_frame)
+        self.date_entry.grid(row=7, column=0, padx=5, pady=(0, 5), sticky="ew")
 
         # --- Assessed By (Assessor) ---
-        ttk.Label(self, text="Assessed By:").grid(row=6, column=0, sticky="e")
+        ttk.Label(self.scrollable_frame, text="Assessed By").grid(row=8, column=0, sticky="w", padx=5, pady=(5, 0))
         self.assessor_var = tk.StringVar()
-        self.assessor_combo = ttk.Combobox(self, textvariable=self.assessor_var, state="readonly", width=30)
-        self.assessor_combo.grid(row=6, column=1, padx=5, pady=5)
+        self.assessor_combo = ttk.Combobox(self.scrollable_frame, textvariable=self.assessor_var, state="readonly")
+        self.assessor_combo.grid(row=9, column=0, padx=5, pady=(0, 5), sticky="ew")
         self.load_assessors()
 
         # --- Notes ---
-        ttk.Label(self, text="Notes:").grid(row=7, column=0, sticky="ne")
-        self.notes_text = tk.Text(self, width=40, height=3)
-        self.notes_text.grid(row=7, column=1, padx=5, pady=5)
-
-        # --- Save Button ---
-        ttk.Button(self, text="Save Step-Up Eval", command=self.save_eval)\
-            .grid(row=8, column=0, columnspan=2, pady=10)
+        ttk.Label(self.scrollable_frame, text="Notes").grid(row=10, column=0, sticky="w", padx=5, pady=(5, 0))
+        self.notes_text = tk.Text(self.scrollable_frame, height=3)
+        self.notes_text.grid(row=11, column=0, columnspan=2, padx=5, pady=(0, 15), sticky="ew")
 
         # --- Saved Evals Display ---
+        ttk.Label(self.scrollable_frame, text="Employee Competency Records", font=('TkDefaultFont', 10, 'bold')).grid(
+            row=12, column=0, sticky="w", padx=5, pady=(10, 5)
+        )
+
+        # Create frame for treeview and its scrollbar
+        tree_frame = ttk.Frame(self.scrollable_frame)
+        tree_frame.grid(row=13, column=0, columnspan=2, padx=5, pady=(0, 10), sticky="nsew")
+        tree_frame.grid_rowconfigure(0, weight=1)
+        tree_frame.grid_columnconfigure(0, weight=1)
+
         columns = ["type", "task", "proficiency", "level", "status", "date", "assessor", "completed"]
-        self.eval_tree = ttk.Treeview(self, columns=columns, show="headings", height=8)
+        self.eval_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=10)
         for col in columns:
             self.eval_tree.heading(col, text=col.title(), command=lambda c=col: self.sort_treeview(c, False))
-        self.eval_tree.grid(row=9, column=0, columnspan=3, padx=5, pady=10)
+            self.eval_tree.column(col, width=100, minwidth=80)
+
+        # Add horizontal and vertical scrollbars for treeview
+        tree_v_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.eval_tree.yview)
+        tree_h_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.eval_tree.xview)
+        self.eval_tree.configure(yscrollcommand=tree_v_scrollbar.set, xscrollcommand=tree_h_scrollbar.set)
+
+        # Grid the treeview and scrollbars
+        self.eval_tree.grid(row=0, column=0, sticky="nsew")
+        tree_v_scrollbar.grid(row=0, column=1, sticky="ns")
+        tree_h_scrollbar.grid(row=1, column=0, sticky="ew")
+
         self.eval_tree.bind('<Double-1>', self.on_treeview_double_click)
 
         # --- Completion Breakdown Display ---
         self.breakdown_var = tk.StringVar()
-        self.breakdown_label = ttk.Label(self, textvariable=self.breakdown_var, font=('TkDefaultFont', 9, 'bold'), foreground='blue')
-        self.breakdown_label.grid(row=10, column=0, columnspan=3, sticky='w', padx=10, pady=5)
+        self.breakdown_label = ttk.Label(self.scrollable_frame, textvariable=self.breakdown_var,
+                                         font=('TkDefaultFont', 9, 'bold'), foreground='blue', wraplength=800)
+        self.breakdown_label.grid(row=14, column=0, columnspan=2, sticky='ew', padx=10, pady=5)
+
+        # Configure row weights for proper expansion
+        self.scrollable_frame.grid_rowconfigure(13, weight=1)  # Make treeview row expandable
 
         self.refresh_eval_list()
+
+    def bind_mousewheel(self):
+        """Bind mousewheel events for scrolling"""
+
+        def _on_mousewheel(event):
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_to_mousewheel(event):
+            self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_from_mousewheel(event):
+            self.canvas.unbind_all("<MouseWheel>")
+
+        self.canvas.bind('<Enter>', _bind_to_mousewheel)
+        self.canvas.bind('<Leave>', _unbind_from_mousewheel)
 
     def get_completion_breakdown(self):
         emp_id = self.get_selected(self.employee_combo, self.employee_choices)
@@ -2798,8 +3315,7 @@ class StepUpEvalTab(ttk.Frame):
             ctype = comp.competency_type or "Unknown"
             total, completed = summary.get(ctype, (0, 0))
             total += 1
-            if rec.status == "Active" and rec.proficiency_achieved and rec.proficiency_achieved.lower() != "none" \
-                    and rec.date_achieved and rec.date_achieved.strip() != "":
+            if rec.status == "Active" and rec.date_achieved and rec.date_achieved.strip() != "":
                 completed += 1
             summary[ctype] = (total, completed)
         return summary
@@ -2809,12 +3325,6 @@ class StepUpEvalTab(ttk.Frame):
         self.employee_choices = [(e.id, f"{e.employee_id} - {e.name_first} {e.name_last}") for e in employees]
         self.employee_combo['values'] = [desc for _, desc in self.employee_choices]
         self.employee_var.set('')
-
-    def load_tasks(self):
-        tasks = self.session.query(ChecklistTask).all()
-        self.task_choices = [(t.id, t.task_description) for t in tasks]
-        self.task_combo['values'] = [desc for _, desc in self.task_choices]
-        self.task_var.set('')
 
     def load_assessors(self):
         assessors = self.session.query(Employee).all()
@@ -2831,41 +3341,6 @@ class StepUpEvalTab(ttk.Frame):
     def on_employee_selected(self, event=None):
         self.refresh_eval_list()
 
-    def save_eval(self):
-        emp_id = self.get_selected(self.employee_combo, self.employee_choices)
-        task_id = self.get_selected(self.task_combo, self.task_choices)
-        proficiency = self.proficiency_var.get()
-        level = self.level_var.get()
-        status = self.status_var.get()
-        date = self.date_entry.get()
-        assessor_id = self.get_selected(self.assessor_combo, self.assessor_choices)
-        notes = self.notes_text.get("1.0", "end").strip()
-
-        checklist_task = self.session.query(ChecklistTask).get(task_id)
-        if not checklist_task or not checklist_task.required_competencies:
-            messagebox.showerror("Error", "This checklist task has no assigned core competency.")
-            return
-        competency = checklist_task.required_competencies[0]
-
-        record = EmployeeCompetency(
-            employee_id=emp_id,
-            competency_id=competency.id,
-            proficiency_achieved=proficiency,
-            date_achieved=date,
-            assessed_by=assessor_id,
-            status=status,
-            notes=notes,
-            level_achieved=level
-        )
-        self.session.add(record)
-        try:
-            self.session.commit()
-            messagebox.showinfo("Saved", "Step-Up evaluation recorded!")
-            self.refresh_eval_list()
-        except Exception as e:
-            self.session.rollback()
-            messagebox.showerror("Error", f"Failed to save eval: {e}")
-
     def assign_all_level_tasks(self):
         emp_id = self.get_selected(self.employee_combo, self.employee_choices)
         selected_level = self.level_var.get()
@@ -2873,7 +3348,6 @@ class StepUpEvalTab(ttk.Frame):
         status = self.status_var.get()
         date = self.date_entry.get()
         notes = self.notes_text.get("1.0", "end").strip()
-        proficiency = self.proficiency_var.get() or None
 
         if not emp_id or not selected_level:
             messagebox.showwarning("Missing Info", "Please select both an employee and a level.")
@@ -2894,7 +3368,7 @@ class StepUpEvalTab(ttk.Frame):
             record = EmployeeCompetency(
                 employee_id=emp_id,
                 competency_id=comp.id,
-                proficiency_achieved=proficiency,
+                proficiency_achieved=None,  # Remove proficiency reference
                 level_achieved=selected_level,
                 date_achieved=date,
                 assessed_by=assessor_id,
@@ -2906,7 +3380,8 @@ class StepUpEvalTab(ttk.Frame):
 
         try:
             self.session.commit()
-            messagebox.showinfo("Assigned", f"Assigned {assigned_count} competencies for level '{selected_level}' to employee.")
+            messagebox.showinfo("Assigned",
+                                f"Assigned {assigned_count} competencies for level '{selected_level}' to employee.")
             self.refresh_eval_list()
         except Exception as e:
             self.session.rollback()
@@ -2929,11 +3404,9 @@ class StepUpEvalTab(ttk.Frame):
                 ChecklistTask.required_competencies.any(id=rec.competency_id)
             ).first()
             is_completed = (
-                rec.status == "Active"
-                and rec.proficiency_achieved
-                and rec.proficiency_achieved.lower() != "none"
-                and rec.date_achieved
-                and rec.date_achieved.strip() != ""
+                    rec.status == "Active"
+                    and rec.date_achieved
+                    and rec.date_achieved.strip() != ""
             )
             completed_text = "Yes" if is_completed else "No"
             self.eval_tree.insert(
@@ -3016,8 +3489,6 @@ class StepUpEvalTab(ttk.Frame):
         entry_popup.bind('<Return>', save_edit)
         entry_popup.bind('<FocusOut>', lambda e: entry_popup.destroy())
         entry_popup.focus_set()
-
-
 
 
 if __name__ == "__main__":
