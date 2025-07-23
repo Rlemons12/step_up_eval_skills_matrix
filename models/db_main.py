@@ -53,7 +53,7 @@ class CoreCompetency(Base):
     required_for_level_2 = Column(Boolean, default=False)
     required_for_level_3 = Column(Boolean, default=False)
     required_for_maintenance_tech = Column(Boolean, default=False)
-    proficiency_level = Column(String)  # Basic, Intermediate, Advanced
+    proficiency_level = Column(String)  # A,B and C Ex: Level_1_A, Level_2_B
 
     # CRITICAL: Add polymorphic configuration
     __mapper_args__ = {
@@ -215,7 +215,7 @@ class ElectricalSkill(TechnicalSkill):
     id = Column(Integer, ForeignKey('technical_skills.id'), primary_key=True)
     sub_category = Column(String)  # "Low/High Voltage Wiring", "Control Circuits & Sensors", "VFDs", "MCC"
     voltage_level = Column(String)  # "Low", "High", "Low/High Voltage"
-    electrical_type = Column(String)  # "Wiring", "Control Circuits", "VFDs", "MCC"
+
 
     __mapper_args__ = {'polymorphic_identity': 'electrical'}
 
@@ -234,8 +234,8 @@ class MechanicalSkill(TechnicalSkill):
     __tablename__ = "mechanical_skills"
     id = Column(Integer, ForeignKey('technical_skills.id'), primary_key=True)
     sub_category = Column(String)  # "Hydraulic Systems", "Pneumatic Systems", "Belt/Chain Drive", "Bearing Systems"
-    mechanical_type = Column(String)  # "Hydraulic", "Pneumatic", "Belt/Chain", "Bearing", "Pump", "Motor"
     equipment_category = Column(String)  # "Pumps", "Motors", "Conveyor", "Compressors", "Actuators"
+
 
     __mapper_args__ = {'polymorphic_identity': 'mechanical'}
 
