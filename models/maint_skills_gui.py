@@ -1149,29 +1149,30 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
     def create_new_task_widgets(self):
         """Create widgets for creating new tasks"""
-        # Area dropdown (same as existing, but for new task creation)
-        ttk.Label(self.task_selection_frame, text="Area:").grid(row=0, column=0, sticky='e', padx=(0, 5))
+
+        # Area section
+        ttk.Label(self.task_selection_frame, text="Area:").grid(row=0, column=0, sticky='w', padx=(0, 5), pady=(0, 2))
         self.new_area_var = tk.StringVar()
         self.new_area_combo = ttk.Combobox(self.task_selection_frame, textvariable=self.new_area_var,
                                            state="readonly", width=50)
-        self.new_area_combo.grid(row=0, column=1, sticky='w', padx=(0, 10))
+        self.new_area_combo.grid(row=1, column=0, sticky='w', padx=(0, 10), pady=(0, 5))
         self.new_area_combo.bind("<<ComboboxSelected>>", self.on_new_area_selected)
+
         # Help text for area
         new_area_help = ttk.Label(self.task_selection_frame, text="Select the work area for the new task",
                                   font=('TkDefaultFont', 8), foreground='blue')
-        new_area_help.grid(row=0, column=2, sticky='w', padx=(10, 0))
+        new_area_help.grid(row=2, column=0, sticky='w', padx=(0, 5), pady=(0, 10))
 
         # Section selection/creation
         section_frame = ttk.Frame(self.task_selection_frame)
-        section_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(10, 0))
+        section_frame.grid(row=3, column=0, sticky='ew', pady=(0, 10))
 
-        ttk.Label(section_frame, text="Section:").grid(row=0, column=0, sticky='e', padx=(0, 5))
+        ttk.Label(section_frame, text="Section:").grid(row=0, column=0, sticky='w', padx=(0, 5), pady=(0, 2))
 
         # Section mode selection
         self.section_mode_var = tk.StringVar(value="existing")
-
         section_mode_frame = ttk.Frame(section_frame)
-        section_mode_frame.grid(row=0, column=1, sticky='w', padx=(0, 10))
+        section_mode_frame.grid(row=1, column=0, sticky='w', pady=(0, 5))
 
         ttk.Radiobutton(section_mode_frame, text="Use Existing",
                         variable=self.section_mode_var, value="existing",
@@ -1183,28 +1184,28 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
         # Dynamic section selection frame
         self.section_selection_frame = ttk.Frame(section_frame)
-        self.section_selection_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(5, 0))
+        self.section_selection_frame.grid(row=2, column=0, sticky='ew', pady=(5, 0))
 
         # Create initial section widgets (existing mode)
         self.create_section_selection_widgets()
 
-        # New task description
-        ttk.Label(self.task_selection_frame, text="New Task Description:").grid(row=2, column=0, sticky='ne',
-                                                                                padx=(0, 5), pady=(15, 0))
+        # New task description section
+        ttk.Label(self.task_selection_frame, text="New Task Description:").grid(row=4, column=0, sticky='w',
+                                                                                padx=(0, 5), pady=(10, 2))
         self.new_task_var = tk.StringVar()
         self.new_task_entry = ttk.Entry(self.task_selection_frame, textvariable=self.new_task_var, width=50)
-        self.new_task_entry.grid(row=2, column=1, sticky='w', padx=(0, 10), pady=(15, 0))
+        self.new_task_entry.grid(row=5, column=0, sticky='w', padx=(0, 10), pady=(0, 5))
 
         # Help text for new task
         new_task_help = ttk.Label(self.task_selection_frame,
                                   text="Enter the description for the new task (e.g., 'Rebuild Solution Pump')",
                                   font=('TkDefaultFont', 8), foreground='blue')
-        new_task_help.grid(row=2, column=2, sticky='w', padx=(10, 0), pady=(15, 0))
+        new_task_help.grid(row=6, column=0, sticky='w', padx=(0, 5), pady=(0, 5))
 
         # Create Task button
         create_task_btn = ttk.Button(self.task_selection_frame, text="Create Task",
                                      command=self.create_new_checklist_task)
-        create_task_btn.grid(row=3, column=1, sticky='w', padx=(0, 10), pady=(10, 0))
+        create_task_btn.grid(row=7, column=0, sticky='w', padx=(0, 10), pady=(10, 0))
 
         # Populate area dropdown
         self.populate_new_task_dropdowns()
@@ -1676,15 +1677,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # --- Level field (just below Competency Name) ---
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.level_var,
+            level_prof_frame, textvariable=self.level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.proficiency_var = tk.StringVar()
+        self.proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.proficiency_combo.set("Basic")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -1736,10 +1751,11 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
         # --- Save all widget vars for saving later ---
         self.dynamic_widgets['mechanical'] = {
-            'competency_name': self.competency_name_var,  # <-- ADD THIS!
+            'competency_name': self.competency_name_var,
             'subcategory': self.mech_subcategory_var,
             'equipment': self.mech_equipment_var,
-            'level': self.level_var
+            'level': self.level_var,
+            'proficiency': self.proficiency_var
         }
 
     def get_mechanical_subcategories(self):
@@ -1836,15 +1852,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # --- Level field (just below Competency Name) ---
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.elec_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.elec_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.elec_level_var,
+            level_prof_frame, textvariable=self.elec_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.elec_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.elec_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.elec_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.elec_proficiency_var = tk.StringVar()
+        self.elec_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.elec_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.elec_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.elec_proficiency_combo.set("Basic")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -1900,7 +1930,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             'competency_name': elec_comp_name_var,
             'subcategory': self.elec_subcategory_var,
             'voltage': self.elec_voltage_var,
-            'level': self.elec_level_var
+            'level': self.elec_level_var,
+            'proficiency': self.elec_proficiency_var
         }
 
     def get_electrical_subcategories(self):
@@ -1970,15 +2001,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # --- Level field (just below Competency Name) ---
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.tool_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.tool_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.tool_level_var,
+            level_prof_frame, textvariable=self.tool_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.tool_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.tool_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.tool_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.tool_proficiency_var = tk.StringVar()
+        self.tool_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.tool_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.tool_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.tool_proficiency_combo.set("Basic")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2028,12 +2073,13 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                              "• Power Tools + Universal (drills, grinders used in both electrical and mechanical work)")
         examples_text.config(state='disabled')
 
-        # --- Register section-specific variables (now includes level) ---
+        # --- Register section-specific variables (now includes proficiency) ---
         self.dynamic_widgets['tools'] = {
             'competency_name': tool_comp_name_var,
             'tool_type': self.tool_type_var,
             'application': self.tool_application_var,
-            'level': self.tool_level_var
+            'level': self.tool_level_var,
+            'proficiency': self.tool_proficiency_var
         }
 
     def get_tool_types(self):
@@ -2097,15 +2143,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # --- Level field (just below Competency Name) ---
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.oper_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.oper_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.oper_level_var,
+            level_prof_frame, textvariable=self.oper_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.oper_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.oper_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.oper_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.oper_proficiency_var = tk.StringVar()
+        self.oper_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.oper_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.oper_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.oper_proficiency_combo.set("Basic")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2155,12 +2215,13 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                              "• Cleaning + Conveyor Belt (proper cleaning procedures for conveyor)")
         examples_text.config(state='disabled')
 
-        # --- Register section-specific variables (now includes level) ---
+        # --- Register section-specific variables (now includes proficiency) ---
         self.dynamic_widgets['operational'] = {
             'competency_name': oper_comp_name_var,
             'operation_type': self.oper_type_var,
             'machine_type': self.oper_machine_var,
-            'level': self.oper_level_var
+            'level': self.oper_level_var,
+            'proficiency': self.oper_proficiency_var
         }
 
     def get_operational_types(self):
@@ -2483,6 +2544,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         widgets = self.dynamic_widgets['tools']
         custom_name = self.get_current_competency_name()
 
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
+
         try:
             skill_data = {
                 'competency_name': custom_name,
@@ -2491,8 +2556,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'tools',
                 'tool_type': widgets['tool_type'].get(),
                 'primary_application': widgets['application'].get(),
-                'level': widgets['level'].get() or None,
-                'proficiency_level': widgets.get('proficiency', tk.StringVar()).get() or None
+                'level': level_value,
+                'proficiency_level': proficiency_value
             }
 
             # Find by ALL unique fields
@@ -2550,6 +2615,13 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             self.session.add(task_assignment)
             self.session.commit()
 
+            print(f"✅ Created tools competency assignment:")
+            print(f"   - Base Competency: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
+            print(f"   - Specific Task: {task.task_action} {task.task_object} (ID: {task.id})")
+            print(f"   - Linked to Checklist Task: {self.current_checklist_task.task_description}")
+
         except Exception as e:
             self.session.rollback()
             raise e
@@ -2558,8 +2630,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         """Create operational skill and task assignment with proper linking"""
         widgets = self.dynamic_widgets['operational']
         custom_name = widgets['competency_name'].get().strip()
-        level_value = (widgets['level'].get() or "").strip() or None  # Normalize to None if blank
-        proficiency_value = (widgets.get('proficiency', tk.StringVar()).get() or "").strip() or None
+
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
 
         try:
             # Step 1: Create or find the base OperationalSkill (competency)
@@ -2593,7 +2667,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 self.session.add(skill)
                 self.session.flush()  # Get the ID
 
-            # Step 2: Create the specific OperationalTask (does NOT have level)
+            # Step 2: Create the specific OperationalTask (does NOT have level/proficiency)
             task_data = {
                 'competency_name': custom_name,
                 'description': f"{self.task_action_var.get()} {self.task_object_var.get()}",
@@ -2631,7 +2705,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             # Commit all changes
             self.session.commit()
 
-            print(f"✅ Created competency assignment:")
+            print(f"✅ Created operational competency assignment:")
             print(f"   - Base Competency: {skill.competency_name} (ID: {skill.id})")
             print(f"   - Level: {skill.level}")
             print(f"   - Proficiency Level: {skill.proficiency_level}")
@@ -2718,15 +2792,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # --- Level field (just below Competency Name) ---
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.safety_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.safety_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.safety_level_var,
+            level_prof_frame, textvariable=self.safety_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.safety_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.safety_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.safety_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.safety_proficiency_var = tk.StringVar()
+        self.safety_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.safety_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.safety_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.safety_proficiency_combo.set("Basic")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2759,19 +2847,22 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         examples_text = tk.Text(self.dynamic_frame, height=3, width=80, font=('TkDefaultFont', 8))
         examples_text.grid(row=6, column=0, columnspan=4, sticky='w')
         examples_text.insert('1.0',
-            "• LOTO - OSHA (for Lockout/Tagout procedures)\n"
-            "• PPE - OSHA (for personal protective equipment use)\n"
-            "• Fire Safety - Local Code (for fire extinguisher training)\n"
-            "• Ergonomics - Other (for safe lifting techniques)")
+                             "• LOTO - OSHA (for Lockout/Tagout procedures)\n"
+                             "• PPE - OSHA (for personal protective equipment use)\n"
+                             "• Fire Safety - Local Code (for fire extinguisher training)\n"
+                             "• Ergonomics - Other (for safe lifting techniques)")
         examples_text.config(state='disabled')
 
-        # Register all section-specific variables for saving
+        # Register all section-specific variables for saving (now includes proficiency)
         self.dynamic_widgets['safety'] = {
             'competency_name': safety_comp_name_var,
             'subcategory': self.safety_subcategory_var,
             'regulatory_standard': self.safety_reg_var,
-            'level': self.safety_level_var
+            'level': self.safety_level_var,
+            'proficiency': self.safety_proficiency_var
         }
+
+    # Updated assignment methods to handle proficiency properly
 
     def get_safety_subcategories(self):
         """Get safety subcategories from DB or fallback."""
@@ -2793,7 +2884,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         custom_name = widgets['competency_name'].get().strip()
         subcategory = widgets['subcategory'].get().strip()
         regulatory_standard = widgets['regulatory_standard'].get().strip()
-        level_value = widgets['level'].get().strip() or None
+
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
 
         try:
             # 1. Create or get the CoreCompetency for Safety
@@ -2802,6 +2896,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'description': f"{subcategory} - {regulatory_standard}",
                 'competency_type': 'safety',
                 'level': level_value,
+                'proficiency_level': proficiency_value
             }
 
             # Use all fields for uniqueness
@@ -2809,13 +2904,15 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 competency_name=custom_name,
                 description=skill_data['description'],
                 competency_type='safety',
-                level=level_value
+                level=level_value,
+                proficiency_level=proficiency_value
             ).first()
 
             if existing_skill:
                 skill = existing_skill
                 skill.description = skill_data['description']
                 skill.level = level_value
+                skill.proficiency_level = proficiency_value
             else:
                 skill = CoreCompetency(**skill_data)
                 self.session.add(skill)
@@ -2833,11 +2930,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 )
                 self.session.add(competency_assignment)
 
-            # 3. Optionally, add a TaskSkillAssignment or SafetyTask if you have a model for safety tasks
-            # If not, just skip this. You may want to model a SafetyTask class for parallelism.
-
             self.session.commit()
             print(f"✅ Created safety competency assignment: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
 
         except Exception as e:
             self.session.rollback()
@@ -2853,15 +2949,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # Level
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.training_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.training_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.training_level_var,
+            level_prof_frame, textvariable=self.training_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.training_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.training_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.training_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.training_proficiency_var = tk.StringVar()
+        self.training_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.training_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.training_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.training_proficiency_combo.set("Basic")
 
         # Training Type
         ttk.Label(self.dynamic_frame, text="Training Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -2896,7 +3006,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             'competency_name': training_comp_name_var,
             'training_type': self.training_type_var,
             'training_method': self.training_method_var,
-            'level': self.training_level_var
+            'level': self.training_level_var,
+            'proficiency': self.training_proficiency_var
         }
 
     def create_communication_section(self):
@@ -2909,15 +3020,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # Level
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.comm_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.comm_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.comm_level_var,
+            level_prof_frame, textvariable=self.comm_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.comm_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.comm_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.comm_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.comm_proficiency_var = tk.StringVar()
+        self.comm_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.comm_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.comm_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.comm_proficiency_combo.set("Basic")
 
         # Communication Method
         ttk.Label(self.dynamic_frame, text="Communication Method:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -2952,7 +3077,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             'competency_name': comm_comp_name_var,
             'communication_method': self.communication_method_var,
             'communication_audience': self.communication_audience_var,
-            'level': self.comm_level_var
+            'level': self.comm_level_var,
+            'proficiency': self.comm_proficiency_var
         }
 
     def create_leadership_section(self):
@@ -2965,15 +3091,29 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             row=0, column=1, columnspan=3, sticky='w', padx=(0, 10), pady=(0, 2)
         )
 
-        # Level
+        # --- Level and Proficiency fields side by side ---
+        level_prof_frame = ttk.Frame(self.dynamic_frame)
+        level_prof_frame.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+
+        # Level field
+        ttk.Label(level_prof_frame, text="Level:").grid(row=0, column=0, sticky='e', padx=(0, 5))
         self.lead_level_var = tk.StringVar()
-        ttk.Label(self.dynamic_frame, text="Level:").grid(row=1, column=0, sticky='e', pady=(0, 8))
         self.lead_level_combo = ttk.Combobox(
-            self.dynamic_frame, textvariable=self.lead_level_var,
+            level_prof_frame, textvariable=self.lead_level_var,
             values=["Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"], width=15
         )
-        self.lead_level_combo.grid(row=1, column=1, sticky='w', pady=(0, 8))
+        self.lead_level_combo.grid(row=0, column=1, sticky='w', padx=(0, 20))
         self.lead_level_combo.set("Level 1")
+
+        # Proficiency field
+        ttk.Label(level_prof_frame, text="Proficiency:").grid(row=0, column=2, sticky='e', padx=(0, 5))
+        self.lead_proficiency_var = tk.StringVar()
+        self.lead_proficiency_combo = ttk.Combobox(
+            level_prof_frame, textvariable=self.lead_proficiency_var,
+            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+        )
+        self.lead_proficiency_combo.grid(row=0, column=3, sticky='w')
+        self.lead_proficiency_combo.set("Basic")
 
         # Leadership Type
         ttk.Label(self.dynamic_frame, text="Leadership Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -3008,13 +3148,18 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             'competency_name': lead_comp_name_var,
             'leadership_type': self.leadership_type_var,
             'leadership_scope': self.leadership_scope_var,
-            'level': self.lead_level_var
+            'level': self.lead_level_var,
+            'proficiency': self.lead_proficiency_var
         }
 
     def create_training_assignment(self):
         widgets = self.dynamic_widgets['training']
         custom_name = widgets['competency_name'].get().strip()
-        level_value = widgets['level'].get().strip() or None
+
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
+
         training_type = widgets['training_type'].get().strip()
         training_method = widgets['training_method'].get().strip()
 
@@ -3025,13 +3170,15 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'training',
                 'training_type': training_type,
                 'training_method': training_method,
-                'level': level_value
+                'level': level_value,
+                'proficiency_level': proficiency_value
             }
 
             existing_skill = self.session.query(TrainingCompetency).filter_by(
                 training_type=training_type,
                 training_method=training_method,
-                level=level_value
+                level=level_value,
+                proficiency_level=proficiency_value
             ).first()
 
             if existing_skill:
@@ -3039,6 +3186,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 skill.competency_name = custom_name
                 skill.description = skill_data['description']
                 skill.level = level_value
+                skill.proficiency_level = proficiency_value
             else:
                 skill = TrainingCompetency(**skill_data)
                 self.session.add(skill)
@@ -3056,6 +3204,9 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 self.session.add(competency_assignment)
 
             self.session.commit()
+            print(f"✅ Created training competency assignment: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
 
         except Exception as e:
             self.session.rollback()
@@ -3064,7 +3215,11 @@ class CompetencyAssignmentFormTab(ttk.Frame):
     def create_communication_assignment(self):
         widgets = self.dynamic_widgets['communication']
         custom_name = widgets['competency_name'].get().strip()
-        level_value = widgets['level'].get().strip() or None
+
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
+
         method = widgets['communication_method'].get().strip()
         audience = widgets['communication_audience'].get().strip()
 
@@ -3075,13 +3230,15 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'communication',
                 'communication_method': method,
                 'communication_audience': audience,
-                'level': level_value
+                'level': level_value,
+                'proficiency_level': proficiency_value
             }
 
             existing_skill = self.session.query(CommunicationCompetency).filter_by(
                 communication_method=method,
                 communication_audience=audience,
-                level=level_value
+                level=level_value,
+                proficiency_level=proficiency_value
             ).first()
 
             if existing_skill:
@@ -3089,6 +3246,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 skill.competency_name = custom_name
                 skill.description = skill_data['description']
                 skill.level = level_value
+                skill.proficiency_level = proficiency_value
             else:
                 skill = CommunicationCompetency(**skill_data)
                 self.session.add(skill)
@@ -3106,6 +3264,9 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 self.session.add(competency_assignment)
 
             self.session.commit()
+            print(f"✅ Created communication competency assignment: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
 
         except Exception as e:
             self.session.rollback()
@@ -3114,7 +3275,11 @@ class CompetencyAssignmentFormTab(ttk.Frame):
     def create_leadership_assignment(self):
         widgets = self.dynamic_widgets['leadership']
         custom_name = widgets['competency_name'].get().strip()
-        level_value = widgets['level'].get().strip() or None
+
+        # Get both level and proficiency values
+        level_value = widgets.get('level', tk.StringVar()).get().strip() or None
+        proficiency_value = widgets.get('proficiency', tk.StringVar()).get().strip() or None
+
         lead_type = widgets['leadership_type'].get().strip()
         scope = widgets['leadership_scope'].get().strip()
 
@@ -3125,13 +3290,15 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 'competency_type': 'leadership',
                 'leadership_type': lead_type,
                 'leadership_scope': scope,
-                'level': level_value
+                'level': level_value,
+                'proficiency_level': proficiency_value
             }
 
             existing_skill = self.session.query(LeadershipCompetency).filter_by(
                 leadership_type=lead_type,
                 leadership_scope=scope,
-                level=level_value
+                level=level_value,
+                proficiency_level=proficiency_value
             ).first()
 
             if existing_skill:
@@ -3139,6 +3306,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 skill.competency_name = custom_name
                 skill.description = skill_data['description']
                 skill.level = level_value
+                skill.proficiency_level = proficiency_value
             else:
                 skill = LeadershipCompetency(**skill_data)
                 self.session.add(skill)
@@ -3156,6 +3324,9 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                 self.session.add(competency_assignment)
 
             self.session.commit()
+            print(f"✅ Created leadership competency assignment: {skill.competency_name} (ID: {skill.id})")
+            print(f"   - Level: {skill.level}")
+            print(f"   - Proficiency Level: {skill.proficiency_level}")
 
         except Exception as e:
             self.session.rollback()
