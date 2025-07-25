@@ -1696,10 +1696,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.proficiency_var = tk.StringVar()
         self.proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.proficiency_combo.set("Basic")
+        self.proficiency_combo.set("Tier")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -1871,10 +1871,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.elec_proficiency_var = tk.StringVar()
         self.elec_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.elec_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.elec_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.elec_proficiency_combo.set("Basic")
+        self.elec_proficiency_combo.set("Tier")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2020,10 +2020,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.tool_proficiency_var = tk.StringVar()
         self.tool_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.tool_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.tool_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.tool_proficiency_combo.set("Basic")
+        self.tool_proficiency_combo.set("Tier")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2162,10 +2162,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.oper_proficiency_var = tk.StringVar()
         self.oper_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.oper_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.oper_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.oper_proficiency_combo.set("Basic")
+        self.oper_proficiency_combo.set("Tier")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2811,10 +2811,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.safety_proficiency_var = tk.StringVar()
         self.safety_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.safety_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.safety_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.safety_proficiency_combo.set("Basic")
+        self.safety_proficiency_combo.set("Tier")
 
         # --- Add description ---
         desc_label = ttk.Label(self.dynamic_frame,
@@ -2968,10 +2968,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.training_proficiency_var = tk.StringVar()
         self.training_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.training_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.training_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.training_proficiency_combo.set("Basic")
+        self.training_proficiency_combo.set("Tier")
 
         # Training Type
         ttk.Label(self.dynamic_frame, text="Training Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -3039,10 +3039,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.comm_proficiency_var = tk.StringVar()
         self.comm_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.comm_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.comm_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.comm_proficiency_combo.set("Basic")
+        self.comm_proficiency_combo.set("Tier")
 
         # Communication Method
         ttk.Label(self.dynamic_frame, text="Communication Method:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -3110,10 +3110,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.lead_proficiency_var = tk.StringVar()
         self.lead_proficiency_combo = ttk.Combobox(
             level_prof_frame, textvariable=self.lead_proficiency_var,
-            values=["Basic", "Intermediate", "Advanced", "Expert"], width=15
+            values=["A", "B", "C"], width=15
         )
         self.lead_proficiency_combo.grid(row=0, column=3, sticky='w')
-        self.lead_proficiency_combo.set("Basic")
+        self.lead_proficiency_combo.set("Tier")
 
         # Leadership Type
         ttk.Label(self.dynamic_frame, text="Leadership Type:").grid(row=2, column=0, sticky='e', padx=(0, 5))
@@ -3428,7 +3428,7 @@ class StepUpEvalTab(ttk.Frame):
         tree_frame.grid_rowconfigure(0, weight=1)
         tree_frame.grid_columnconfigure(0, weight=1)
 
-        columns = ["type", "task", "proficiency", "level", "status", "date", "assessor", "completed"]
+        columns = ["type", "task", "tier", "level", "proficiency","status", "date", "assessor", "completed"]
         self.eval_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=10)
         for col in columns:
             self.eval_tree.heading(col, text=col.title(), command=lambda c=col: self.sort_treeview(c, False))
@@ -3586,6 +3586,8 @@ class StepUpEvalTab(ttk.Frame):
                 values=(
                     comp.competency_type if comp else "",
                     checklist_task.task_description if checklist_task else "",
+                    (comp.proficiency_level.split('_')[-1] if comp and comp.proficiency_level else ""),
+                    # Extract A, B, or C
                     rec.proficiency_achieved,
                     rec.level_achieved,
                     rec.status,
@@ -3593,6 +3595,7 @@ class StepUpEvalTab(ttk.Frame):
                     f"{assessor.employee_id}" if assessor else "",
                     completed_text
                 )
+
             )
         # Show breakdown
         breakdown = self.get_completion_breakdown()
@@ -3640,7 +3643,8 @@ class StepUpEvalTab(ttk.Frame):
             return
 
         col_index = int(column.replace('#', '')) - 1
-        columns = ["type", "task", "proficiency", "level", "status", "date", "assessor", "completed"]
+        columns = ["type", "task", "tier",  "level","proficiency", "status", "date", "assessor", "completed"]
+
         field = columns[col_index]
         if field == 'completed':
             return  # Completed column is not editable
