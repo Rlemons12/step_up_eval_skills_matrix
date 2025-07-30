@@ -22,7 +22,7 @@ except ImportError as e:
     print(f"Current directory: {os.getcwd()}")
     print(f"Python path: {sys.path}")
     print("Available files in current directory:")
-    for file in os.listdir('.'):
+    for file in os.listdir('..'):
         if file.endswith('.py'):
             print(f"  - {file}")
     raise
