@@ -751,7 +751,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
     def create_checklist_section(self, parent):
         # Checklist Task Selection
-        checklist_frame = ttk.LabelFrame(parent, text="1. Select or Create Checklist Task", padding=10)
+        checklist_frame = ttk.LabelFrame(self.scrollable_frame, text="1. Select or Create Checklist Task", padding=10)
         checklist_frame.pack(fill='x', pady=(0, 10))
 
         # Add description label
