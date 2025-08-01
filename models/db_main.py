@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from datetime import time, datetime
+from datetime import time, datetime,date
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Time, Date, Numeric, func
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Time, Date, Numeric, func, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -380,12 +380,6 @@ class ShiftDay(Base):
 
     # Relationships
     shift = relationship("Shift", back_populates="shift_days")
-
-
-from datetime import date
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import and_, or_
-
 
 class EmployeeSchedule(Base):
     __tablename__ = "employee_schedules"

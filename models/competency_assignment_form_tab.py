@@ -22,7 +22,7 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
     def __init__(self, parent, session):
         """
-        Initialize the Competency Assignment Form Tab.
+        Initialize the Competency Assignment Form Tab with scrollable support.
 
         This form supports both 'Proficiency' (Basic, Intermediate, Advanced)
         and 'Level' (Level 1, Level 2, etc.) fields as optional values.
@@ -34,43 +34,94 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.selected_assignment_type = None
         self.setup_editing_indicators()
 
-
         # Optionally initialize the dynamic vars (for later assignment in each section)
         self.proficiency_var = None  # Will be created per-section in dynamic form
         self.level_var = None  # Will be created per-section in dynamic form
 
-        # Main container with scrollable frame
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        # CREATE SCROLLABLE CONTAINER FIRST
+        self.create_scrollable_container()
 
         # Title
-        title_label = ttk.Label(main_frame, text="Competency Assignment Form",
+        title_label = ttk.Label(self.scrollable_frame, text="Competency Assignment Form",
                                 font=('TkDefaultFont', 14, 'bold'))
-        title_label.pack(anchor='w', pady=(0, 15))
+        title_label.pack(anchor='w', padx=10, pady=(10, 15))
 
         # Section 1: Checklist Task Selection
-        self.create_checklist_section(main_frame)
+        self.create_checklist_section(self.scrollable_frame)
 
         # -- Section: Current Task Details
-        self.create_current_task_details_section(main_frame)
+        self.create_current_task_details_section(self.scrollable_frame)
         self.task_details_tree.bind('<<TreeviewSelect>>', self.on_task_details_row_selected)
         self.task_details_tree.bind('<Double-1>', self.on_task_details_tree_double_click)
 
         # Section 2: Competency Type Selection
-        self.create_competency_type_section(main_frame)
+        self.create_competency_type_section(self.scrollable_frame)
 
         # Section 3: Dynamic competency details (will be populated based on selection)
-        self.create_dynamic_section(main_frame)
+        self.create_dynamic_section(self.scrollable_frame)
 
         # Section 4: Task Definition
-        self.create_task_section(main_frame)
+        self.create_task_section(self.scrollable_frame)
 
         # Section 5: Action buttons
-        self.create_action_buttons(main_frame)
+        self.create_action_buttons(self.scrollable_frame)
 
         # Initialize form fields and dropdowns
         self.reset_form()
         self.populate_checklist_dropdowns()
+
+    def get_mechanical_task_actions(self, sub_category=None, equipment_category=None):
+        """
+        Return a sorted list of distinct task actions for MechanicalTask, optionally filtered
+        by sub_category and equipment_category.
+        """
+        query = self.session.query(MechanicalTask.task_action)
+        if sub_category:
+            query = query.filter(MechanicalTask.sub_category == sub_category)
+        if equipment_category:
+            query = query.filter(MechanicalTask.equipment_category == equipment_category)
+        actions = query.distinct().all()
+        return sorted({a[0] for a in actions if a[0]})
+
+    def create_scrollable_container(self):
+        """Create a scrollable container for the entire form."""
+
+        # Create canvas and scrollbar
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        # Configure scrolling
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Pack canvas and scrollbar
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Bind mousewheel scrolling
+        self.bind_mousewheel()
+
+    def bind_mousewheel(self):
+        """Bind mousewheel scrolling to the canvas."""
+
+        def _on_mousewheel(event):
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_to_mousewheel(event):
+            self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_from_mousewheel(event):
+            self.canvas.unbind_all("<MouseWheel>")
+
+        # Bind when mouse enters the widget
+        self.canvas.bind('<Enter>', _bind_to_mousewheel)
+        self.canvas.bind('<Leave>', _unbind_from_mousewheel)
 
     def refresh_current_task_details(self):
         """Refresh the treeview showing all competencies and assignments for the selected checklist task."""

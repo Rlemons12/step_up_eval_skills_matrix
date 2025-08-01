@@ -1,23 +1,37 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from db_main import Employee, MaintenancePerson, Supervisor, TechnicalSkill, MechanicalSkill, ElectricalSkill, ToolSkill
-from db_main import( CoreCompetency,  AreaChecklist, ChecklistSection, ChecklistTask, OperationalTask,OperationalSkill,
-                     MechanicalTask,ElectricalTask, ToolTask, TaskSkillAssignment, ChecklistTaskCompetency,
-                     EmployeeCompetency, EmployeeSchedule)
-
-from tkinter import ttk, messagebox
-from tkinter import filedialog
+from tkinter import ttk, messagebox, simpledialog, filedialog
 import csv
 from datetime import time, datetime
-from db_main import Shift, ShiftDay
+import os
+import sys
 
+# Add the project root to the path so we can import config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-DATABASE_FILE = 'maintenance_skills.db'
-engine = create_engine(f'sqlite:///{DATABASE_FILE}')
+from models.configuration.config import DATABASE_URL
+from models.configuration.log_config import info_id, debug_id, error_id, warning_id, set_request_id
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from models.db_main import (
+    Employee, MaintenancePerson, Supervisor, TechnicalSkill, MechanicalSkill, ElectricalSkill, ToolSkill,
+    CoreCompetency, AreaChecklist, ChecklistSection, ChecklistTask, OperationalTask, OperationalSkill,
+    MechanicalTask, ElectricalTask, ToolTask, TaskSkillAssignment, ChecklistTaskCompetency,
+    EmployeeCompetency, EmployeeSchedule, Shift, ShiftDay
+)
+
+# Initialize logging for this GUI application
+request_id = set_request_id("GUI_APP")
+info_id("Initializing GUI application", request_id)
+
+# Database setup using config
+debug_id(f"Using database URL from config: {DATABASE_URL}", request_id)
+engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+info_id("Database connection established", request_id)
 
 def normalize_str(val):
     """Ensure blank or whitespace string is always stored as None, and trims spaces."""
@@ -2330,14 +2344,12 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                                font=('TkDefaultFont', 9), foreground='gray')
         desc_label.grid(row=0, column=0, columnspan=4, sticky='w', pady=(0, 10))
 
-        # Task Action
+        # Task Action - Updated to populate from database based on competency type
         ttk.Label(task_frame, text="Task Action:").grid(row=1, column=0, sticky='e', padx=(0, 5))
         self.task_action_var = tk.StringVar()
         self.task_action_combo = ttk.Combobox(task_frame, textvariable=self.task_action_var,
-                                              values=["Rebuild", "Install", "Remove", "Inspect",
-                                                      "Repair", "Test", "Calibrate", "Operate",
-                                                      "Maintain", "Clean", "Lubricate"],
-                                              width=20)
+                                              values=[],  # Start empty - will be populated dynamically
+                                              width=20, state="normal")  # Allow typing custom actions
         self.task_action_combo.grid(row=1, column=1, sticky='w', padx=(0, 20))
 
         # Help text for action
@@ -2380,6 +2392,105 @@ class CompetencyAssignmentFormTab(ttk.Frame):
                              "• Action='Install', Object='Motor Starter', Verification='Proper wiring per schematic, successful motor start/stop operation'\n"
                              "• Action='Operate', Object='Conveyor System', Verification='Demonstrate startup, normal operation, and shutdown procedures safely'")
         examples_text.config(state='disabled')
+
+    def populate_task_actions_from_db(self, comp_type):
+        """Populate task action dropdown from database based on competency type."""
+        try:
+            actions = []
+
+            if comp_type == 'mechanical':
+                # Use MechanicalTask table, not MechanicalSkill
+                db_actions = self.session.query(MechanicalTask.task_action).filter(
+                    MechanicalTask.task_action.isnot(None),
+                    MechanicalTask.task_action != '',
+                    MechanicalTask.task_action != 'None'  # Filter out string 'None'
+                ).distinct().all()
+                actions = [action[0] for action in db_actions if action[0]]
+
+            elif comp_type == 'electrical':
+                # Get distinct task actions from ElectricalTask table
+                db_actions = self.session.query(ElectricalTask.task_action).distinct().all()
+                actions = [action[0] for action in db_actions if action[0]]
+
+            elif comp_type == 'tools':
+                # Get distinct task actions from ToolTask table
+                db_actions = self.session.query(ToolTask.task_action).distinct().all()
+                actions = [action[0] for action in db_actions if action[0]]
+
+            elif comp_type == 'operational':
+                # Get distinct task actions from OperationalTask table
+                db_actions = self.session.query(OperationalTask.task_action).distinct().all()
+                actions = [action[0] for action in db_actions if action[0]]
+
+            else:
+                # For safety, training, communication, leadership - use common actions
+                actions = ["Implement", "Follow", "Demonstrate", "Document", "Train",
+                           "Assess", "Present", "Communicate", "Lead", "Coordinate"]
+
+            # Remove duplicates and sort
+            actions = sorted(list(set(actions))) if actions else []
+
+            # Add some common fallback actions if database is empty
+            if not actions:
+                fallback_actions = {
+                    'mechanical': ["Rebuild", "Install", "Remove", "Repair", "Inspect", "Test", "Calibrate",
+                                   "Maintain"],
+                    'electrical': ["Install", "Wire", "Test", "Troubleshoot", "Replace", "Calibrate", "Program"],
+                    'tools': ["Use", "Operate", "Calibrate", "Maintain", "Test", "Measure"],
+                    'operational': ["Operate", "Start", "Stop", "Monitor", "Setup", "Clean"],
+                    'safety': ["Implement", "Follow", "Demonstrate", "Document", "Train"],
+                    'training': ["Teach", "Mentor", "Demonstrate", "Assess", "Present"],
+                    'communication': ["Communicate", "Present", "Document", "Report", "Discuss"],
+                    'leadership': ["Lead", "Direct", "Coordinate", "Manage", "Decide"]
+                }
+                actions = fallback_actions.get(comp_type, ["Perform", "Execute", "Complete"])
+
+            # Update the combobox
+            if hasattr(self, 'task_action_combo'):
+                self.task_action_combo['values'] = actions
+                # Clear current selection when changing competency type
+                self.task_action_var.set('')
+
+            print(
+                f"✅ Loaded {len(actions)} task actions for {comp_type}: {actions[:5]}{'...' if len(actions) > 5 else ''}")
+            return actions
+
+        except Exception as e:
+            print(f"❌ Error loading task actions from database: {e}")
+            # Fallback to basic actions
+            basic_actions = ["Perform", "Execute", "Complete", "Inspect", "Test", "Maintain"]
+            if hasattr(self, 'task_action_combo'):
+                self.task_action_combo['values'] = basic_actions
+            return basic_actions
+
+    # MODIFY your existing on_competency_type_selected method by adding this line at the end:
+    def on_competency_type_selected(self):
+        comp_type = self.competency_type_var.get()
+
+        for widget in self.dynamic_frame.winfo_children():
+            widget.destroy()
+        self.dynamic_widgets.clear()
+
+        if comp_type == "mechanical":
+            self.create_mechanical_section()
+        elif comp_type == "electrical":
+            self.create_electrical_section()
+        elif comp_type == "tools":
+            self.create_tools_section()
+        elif comp_type == "operational":
+            self.create_operational_section()
+        elif comp_type == "safety":
+            self.create_safety_section()
+        elif comp_type == "training":
+            self.create_training_section()
+        elif comp_type == "communication":
+            self.create_communication_section()
+        elif comp_type == "leadership":
+            self.create_leadership_section()
+
+        # ADD THIS LINE - populate task actions from database
+        if comp_type:
+            self.populate_task_actions_from_db(comp_type)
 
     def create_action_buttons(self, parent):
         # Action Buttons
@@ -2484,30 +2595,6 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load task details: {e}")
-
-    def on_competency_type_selected(self):
-        comp_type = self.competency_type_var.get()
-
-        for widget in self.dynamic_frame.winfo_children():
-            widget.destroy()
-        self.dynamic_widgets.clear()
-
-        if comp_type == "mechanical":
-            self.create_mechanical_section()
-        elif comp_type == "electrical":
-            self.create_electrical_section()
-        elif comp_type == "tools":
-            self.create_tools_section()
-        elif comp_type == "operational":
-            self.create_operational_section()
-        elif comp_type == "safety":
-            self.create_safety_section()
-        elif comp_type == "training":
-            self.create_training_section()
-        elif comp_type == "communication":
-            self.create_communication_section()
-        elif comp_type == "leadership":
-            self.create_leadership_section()
 
     def refresh_dropdowns(self):
         """Refresh dropdown options from database - call this when tab becomes active"""
@@ -3716,6 +3803,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.verification_text.delete('1.0', tk.END)
         self.current_checklist_task = None
 
+        # Clear task action combobox values since no competency type is selected
+        if hasattr(self, 'task_action_combo'):
+            self.task_action_combo['values'] = []
+
         # Clear dynamic section
         for widget in self.dynamic_frame.winfo_children():
             widget.destroy()
@@ -3725,6 +3816,10 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.preview_text.config(state='normal')
         self.preview_text.delete('1.0', tk.END)
         self.preview_text.config(state='disabled')
+
+        # Clear current task details
+        if hasattr(self, 'refresh_current_task_details'):
+            self.refresh_current_task_details()
 
         # Repopulate dropdowns
         self.populate_checklist_dropdowns()
@@ -6250,9 +6345,7 @@ class StepUpEvalTab(ttk.Frame):
             self.results_var.set("No employee selected")
             return
 
-        # Get all records for the employee
         evals = self.session.query(EmployeeCompetency).filter_by(employee_id=emp_id).all()
-
         total_records = len(evals)
         filtered_count = 0
 
@@ -6260,10 +6353,31 @@ class StepUpEvalTab(ttk.Frame):
             comp = self.session.query(CoreCompetency).get(rec.competency_id)
             assessor = self.session.query(Employee).get(rec.assessed_by) if rec.assessed_by else None
 
-            # Get checklist task (this might need adjustment based on your schema)
-            checklist_task = self.session.query(ChecklistTask).filter(
-                ChecklistTask.required_competencies.any(id=rec.competency_id)
-            ).first()
+            # ===== Get correct task details =====
+            task_action = ""
+            task_object = ""
+            verification_method = ""
+            task_desc = ""
+            ctype = (comp.competency_type or "").lower() if comp else ""
+
+            # Always use `.get(comp.id)` for all 3!
+            if ctype in ("mechanical_task", "mechanical"):
+                task_row = self.session.query(MechanicalTask).get(comp.id)
+            elif ctype in ("electrical_task", "electrical"):
+                task_row = self.session.query(ElectricalTask).get(comp.id)
+            elif ctype in ("operational_task", "operational"):
+                task_row = self.session.query(OperationalTask).get(comp.id)
+            else:
+                task_row = None
+
+            if task_row:
+                task_action = getattr(task_row, "task_action", "") or ""
+                task_object = getattr(task_row, "task_object", "") or ""
+                verification_method = getattr(task_row, "verification_method", "") or ""
+                task_desc = f"{task_action} {task_object}".strip()
+            else:
+                # Fallback: Show the competency name if not a known type or if no detail record exists
+                task_desc = getattr(comp, "competency_name", "") if comp else ""
 
             is_completed = (
                     rec.status == "Active"
@@ -6272,22 +6386,22 @@ class StepUpEvalTab(ttk.Frame):
             )
             completed_text = "Yes" if is_completed else "No"
 
-            # Prepare record data (now includes notes)
             record_data = (
                 comp.competency_type if comp else "",
-                checklist_task.task_description if checklist_task else "",
+                task_desc,
                 (comp.proficiency_level.split('_')[-1] if comp and comp.proficiency_level else ""),
                 rec.proficiency_achieved or "",
                 rec.level_achieved or "",
                 rec.status or "",
                 rec.date_achieved or "",
                 f"{assessor.employee_id}" if assessor else "",
-                rec.notes or "",  # Add notes column
+                rec.notes or "",
                 completed_text
             )
 
             # Apply filters
             if self.passes_filters(record_data):
+                print(f"ADDING: {record_data}")
                 self.eval_tree.insert(
                     '', 'end',
                     iid=str(rec.id),
