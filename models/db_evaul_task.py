@@ -141,7 +141,7 @@ class TaskEvaluation(Base):
 # DATABASE MANAGER
 # =====================================================
 
-class SimpleTaskEvaluationDB:
+class clSimpleTaskEvaluationDB:
     def __init__(self, database_url="sqlite:///task_evaluations.db"):
         # Create engine with updated configuration
         self.engine = create_engine(

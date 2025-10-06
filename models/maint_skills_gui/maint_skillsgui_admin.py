@@ -13,6 +13,37 @@ from models.configuration.log_config import info_id, debug_id, error_id, warning
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base
+import hashlib, os, binascii
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
+
+# ===================== Multi-user Auth: model + security helpers =====================
+AuthBase = declarative_base()
+
+class UserAuth(AuthBase):
+    __tablename__ = "users_auth"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False, index=True)
+    # store hex strings for hash & salt
+    password_hash = Column(String(256), nullable=False)
+    salt = Column(String(64), nullable=False)
+    role = Column(String(32), nullable=False, default="user")  # e.g., "admin", "manager", "user"
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+def make_salt(n_bytes: int = 16) -> str:
+    return binascii.hexlify(os.urandom(n_bytes)).decode("ascii")
+
+def hash_password(password: str, salt_hex: str, iterations: int = 120_000) -> str:
+    salt = binascii.unhexlify(salt_hex.encode("ascii"))
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations, dklen=32)
+    return binascii.hexlify(dk).decode("ascii")
+
+def verify_password(password: str, salt_hex: str, expected_hash_hex: str) -> bool:
+    return hash_password(password, salt_hex) == expected_hash_hex
+# ================================================================================
+
 
 from models.db_main import (
     Employee, MaintenancePerson, Supervisor, TechnicalSkill, MechanicalSkill, ElectricalSkill, ToolSkill,
@@ -30,6 +61,41 @@ debug_id(f"Using database URL from config: {DATABASE_URL}", request_id)
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+
+# --- Create the users_auth table if it doesn't exist ---
+try:
+    AuthBase.metadata.create_all(bind=engine)
+    info_id("Auth table ready", request_id)
+except Exception as e:
+    error_id(f"Failed to create auth table: {e}", request_id)
+
+def ensure_admin_user(default_user="admin"):
+    """Create an initial admin if no users exist."""
+    try:
+        count = session.query(UserAuth).count()
+        if count == 0:
+            from tkinter import simpledialog, Tk
+            boot = Tk()
+            boot.withdraw()
+            u = simpledialog.askstring("Setup Admin", "Create admin username:", initialvalue=default_user)
+            p = simpledialog.askstring("Setup Admin", "Create admin password:", show="*")
+            boot.destroy()
+
+            if not u or not p:
+                raise RuntimeError("Admin setup aborted; no users exist.")
+
+            salt = make_salt()
+            phash = hash_password(p, salt)
+            admin = UserAuth(username=u.strip(), password_hash=phash, salt=salt, role="admin", is_active=True)
+            session.add(admin)
+            session.commit()
+            info_id(f"Admin user '{u}' created.", request_id)
+    except Exception as e:
+        session.rollback()
+        error_id(f"Admin bootstrap failed: {e}", request_id)
+
+ensure_admin_user()
 
 info_id("Database connection established", request_id)
 
@@ -340,46 +406,379 @@ class EmployeeForm(simpledialog.Dialog):
         # Store shift assignment info for later processing
         self.result["selected_shift"] = self.shift_var.get()
 
+class MultiUserLoginDialog(simpledialog.Dialog):
+    """Login dialog that authenticates against users_auth table."""
+    def __init__(self, parent, title, session):
+        self.session = session
+        self.current_user = None
+        super().__init__(parent, title)
+
+    def body(self, master):
+        ttk.Label(master, text="Username:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        ttk.Label(master, text="Password:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
+
+        self.u_var = tk.StringVar()
+        self.p_var = tk.StringVar()
+
+        self.u_entry = ttk.Entry(master, textvariable=self.u_var)
+        self.p_entry = ttk.Entry(master, show="*", textvariable=self.p_var)
+
+        self.u_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.p_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        return self.u_entry  # initial focus
+
+    def validate(self):
+        u = (self.u_var.get() or "").strip()
+        p = self.p_var.get() or ""
+
+        if not u or not p:
+            messagebox.showerror("Login Failed", "Username and password are required.")
+            return False
+
+        try:
+            user = self.session.query(UserAuth).filter_by(username=u, is_active=True).first()
+            if not user:
+                messagebox.showerror("Login Failed", "Invalid username or inactive user.")
+                return False
+            if not verify_password(p, user.salt, user.password_hash):
+                messagebox.showerror("Login Failed", "Invalid username or password.")
+                return False
+
+            self.current_user = user
+            return True
+        except Exception as e:
+            error_id(f"Login error for '{u}': {e}", request_id)
+            messagebox.showerror("Login Error", f"An error occurred: {e}")
+            return False
+
+    def apply(self):
+        pass
+
+class ManageUsersDialog(tk.Toplevel):
+    """
+    Admin-only user management UI for the users_auth table.
+    Features:
+      - List users
+      - Create user (username, password, role)
+      - Edit user (username, role, is_active)
+      - Reset password
+      - Activate/Deactivate user
+    """
+    ROLES = ["admin", "manager", "user"]
+
+    def __init__(self, parent, session):
+        super().__init__(parent)
+        self.title("Manage Users")
+        self.session = session
+        self.geometry("700x420")
+        self.resizable(True, True)
+
+        # Top controls
+        top = ttk.Frame(self, padding=10)
+        top.pack(fill="x")
+
+        ttk.Label(top, text="🔐 User Administration", font=("TkDefaultFont", 12, "bold")).pack(side="left")
+
+        # Table
+        table_frame = ttk.Frame(self, padding=(10, 0))
+        table_frame.pack(fill="both", expand=True)
+
+        cols = ("id", "username", "role", "is_active", "created_at")
+        self.tree = ttk.Treeview(table_frame, columns=cols, show="headings", selectmode="browse", height=12)
+        for c, w in zip(cols, (60, 200, 100, 80, 200)):
+            self.tree.heading(c, text=c.replace("_", " ").title())
+            self.tree.column(c, width=w, anchor="w")
+        self.tree.pack(side="left", fill="both", expand=True)
+
+        vscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=vscroll.set)
+        vscroll.pack(side="right", fill="y")
+
+        # Buttons
+        btns = ttk.Frame(self, padding=10)
+        btns.pack(fill="x")
+
+        ttk.Button(btns, text="➕ Create", command=self.create_user).pack(side="left", padx=5)
+        ttk.Button(btns, text="✏️ Edit", command=self.edit_user).pack(side="left", padx=5)
+        ttk.Button(btns, text="🔑 Reset Password", command=self.reset_password).pack(side="left", padx=5)
+        ttk.Button(btns, text="⏻ Activate/Deactivate", command=self.toggle_active).pack(side="left", padx=5)
+        ttk.Button(btns, text="🔄 Refresh", command=self.refresh).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Close", command=self.destroy).pack(side="right")
+
+        self.refresh()
+
+    # ---------- helpers ----------
+    def _selected_user(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Select User", "Please select a user from the list.")
+            return None
+        uid = int(self.tree.item(sel[0])["values"][0])
+        return self.session.query(UserAuth).get(uid)
+
+    def refresh(self):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        try:
+            users = self.session.query(UserAuth).order_by(UserAuth.username.asc()).all()
+            for u in users:
+                self.tree.insert(
+                    "",
+                    "end",
+                    iid=str(u.id),
+                    values=(u.id, u.username, u.role, "Yes" if u.is_active else "No", str(u.created_at)),
+                )
+        except Exception as e:
+            error_id(f"Failed to load users: {e}", request_id)
+            messagebox.showerror("Error", f"Failed to load users: {e}")
+
+    # ---------- actions ----------
+    def create_user(self):
+        dlg = UserEditorDialog(self, title="Create User", role_default="user")
+        result = dlg.result
+        if not result:
+            return
+        username = (result.get("username") or "").strip()
+        role = result.get("role") or "user"
+        password = result.get("password") or ""
+
+        if not username or not password:
+            messagebox.showerror("Missing", "Username and password are required.")
+            return
+
+        try:
+            # ensure unique username
+            if self.session.query(UserAuth).filter_by(username=username).first():
+                messagebox.showerror("Duplicate", f"Username '{username}' already exists.")
+                return
+
+            salt = make_salt()
+            phash = hash_password(password, salt)
+            u = UserAuth(username=username, password_hash=phash, salt=salt, role=role, is_active=True)
+            self.session.add(u)
+            self.session.commit()
+            info_id(f"User '{username}' created.", request_id)
+            self.refresh()
+        except Exception as e:
+            self.session.rollback()
+            error_id(f"Create user failed: {e}", request_id)
+            messagebox.showerror("Error", f"Create user failed: {e}")
+
+    def edit_user(self):
+        user = self._selected_user()
+        if not user:
+            return
+        dlg = UserEditorDialog(self, title="Edit User", username_default=user.username, role_default=user.role,
+                               allow_password=False, allow_username_edit=True, is_active=user.is_active)
+        result = dlg.result
+        if not result:
+            return
+
+        new_username = (result.get("username") or "").strip()
+        new_role = (result.get("role") or user.role).lower()
+        new_active = bool(result.get("is_active"))
+
+        if not new_username:
+            messagebox.showerror("Missing", "Username is required.")
+            return
+
+        try:
+            # prevent duplication when changing username
+            if new_username != user.username and self.session.query(UserAuth).filter_by(username=new_username).first():
+                messagebox.showerror("Duplicate", f"Username '{new_username}' already exists.")
+                return
+
+            # guard: don't let admin deactivate themselves here if desired (optional)
+            user.username = new_username
+            user.role = new_role
+            user.is_active = new_active
+            self.session.commit()
+            info_id(f"User '{new_username}' updated.", request_id)
+            self.refresh()
+        except Exception as e:
+            self.session.rollback()
+            error_id(f"Edit user failed: {e}", request_id)
+            messagebox.showerror("Error", f"Edit user failed: {e}")
+
+    def reset_password(self):
+        user = self._selected_user()
+        if not user:
+            return
+
+        p1 = simpledialog.askstring("Reset Password", f"Enter new password for '{user.username}':", show="*")
+        if p1 is None:
+            return
+        p2 = simpledialog.askstring("Reset Password", "Confirm new password:", show="*")
+        if p2 is None:
+            return
+        if p1 != p2:
+            messagebox.showerror("Mismatch", "Passwords do not match.")
+            return
+
+        try:
+            salt = make_salt()
+            phash = hash_password(p1, salt)
+            user.salt = salt
+            user.password_hash = phash
+            self.session.commit()
+            info_id(f"Password reset for '{user.username}'.", request_id)
+            messagebox.showinfo("Success", "Password updated.")
+        except Exception as e:
+            self.session.rollback()
+            error_id(f"Reset password failed: {e}", request_id)
+            messagebox.showerror("Error", f"Reset password failed: {e}")
+
+    def toggle_active(self):
+        user = self._selected_user()
+        if not user:
+            return
+        try:
+            user.is_active = not user.is_active
+            self.session.commit()
+            state = "activated" if user.is_active else "deactivated"
+            info_id(f"User '{user.username}' {state}.", request_id)
+            self.refresh()
+        except Exception as e:
+            self.session.rollback()
+            error_id(f"Toggle active failed: {e}", request_id)
+            messagebox.showerror("Error", f"Toggle active failed: {e}")
+
+
+class UserEditorDialog(simpledialog.Dialog):
+    """
+    Small dialog to create/update a user.
+    If allow_password is False, hides password fields (used for editing).
+    """
+    def __init__(self, parent, title="User", username_default="", role_default="user",
+                 allow_password=True, allow_username_edit=True, is_active=True):
+        self.username_default = username_default
+        self.role_default = role_default
+        self.allow_password = allow_password
+        self.allow_username_edit = allow_username_edit
+        self.is_active_default = is_active
+        self.result = None
+        super().__init__(parent, title)
+
+    def body(self, master):
+        r = 0
+        ttk.Label(master, text="Username:").grid(row=r, column=0, sticky="e", padx=5, pady=5)
+        self.u_var = tk.StringVar(value=self.username_default)
+        self.u_entry = ttk.Entry(master, textvariable=self.u_var, state=("normal" if self.allow_username_edit else "disabled"))
+        self.u_entry.grid(row=r, column=1, padx=5, pady=5, sticky="w")
+        r += 1
+
+        ttk.Label(master, text="Role:").grid(row=r, column=0, sticky="e", padx=5, pady=5)
+        self.role_var = tk.StringVar(value=self.role_default)
+        self.role_cb = ttk.Combobox(master, textvariable=self.role_var, values=ManageUsersDialog.ROLES, state="readonly")
+        self.role_cb.grid(row=r, column=1, padx=5, pady=5, sticky="w")
+        r += 1
+
+        if self.allow_password:
+            ttk.Label(master, text="Password:").grid(row=r, column=0, sticky="e", padx=5, pady=5)
+            self.p1_var = tk.StringVar()
+            ttk.Entry(master, textvariable=self.p1_var, show="*").grid(row=r, column=1, padx=5, pady=5, sticky="w")
+            r += 1
+
+            ttk.Label(master, text="Confirm Password:").grid(row=r, column=0, sticky="e", padx=5, pady=5)
+            self.p2_var = tk.StringVar()
+            ttk.Entry(master, textvariable=self.p2_var, show="*").grid(row=r, column=1, padx=5, pady=5, sticky="w")
+            r += 1
+
+        # is_active (only for edit)
+        if not self.allow_password:
+            self.active_var = tk.BooleanVar(value=self.is_active_default)
+            ttk.Checkbutton(master, text="Active", variable=self.active_var).grid(row=r, column=1, padx=5, pady=5, sticky="w")
+            r += 1
+
+        return self.u_entry
+
+    def validate(self):
+        username = (self.u_var.get() or "").strip()
+        role = (self.role_var.get() or "user").lower()
+        if not username:
+            messagebox.showerror("Missing", "Username is required.")
+            return False
+        if role not in ManageUsersDialog.ROLES:
+            messagebox.showerror("Invalid", "Role must be one of: admin, manager, user.")
+            return False
+
+        if self.allow_password:
+            p1 = self.p1_var.get() or ""
+            p2 = self.p2_var.get() or ""
+            if not p1:
+                messagebox.showerror("Missing", "Password is required.")
+                return False
+            if p1 != p2:
+                messagebox.showerror("Mismatch", "Passwords do not match.")
+                return False
+
+        return True
+
+    def apply(self):
+        data = {
+            "username": (self.u_var.get() or "").strip(),
+            "role": (self.role_var.get() or "user").lower(),
+        }
+        if self.allow_password:
+            data["password"] = self.p1_var.get()
+        else:
+            data["is_active"] = bool(self.active_var.get())
+        self.result = data
+
+
 class EmployeeViewerApp:
-    def __init__(self, root):
+    def __init__(self, root, current_user):
+        self.current_user = current_user
+        self.role = (getattr(current_user, 'role', 'user') or 'user').lower()
+
         self.root = root
-        self.root.title("Maintenance Skills Database")
+        self.root.title(f"Maintenance Skills Database — {self.current_user.username} ({self.role})")
+
+        # Main notebook
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True)
 
-        # First tab: Employees
+        # ----------------- Employees Tab -----------------
         self.employee_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.employee_tab, text="Employees")
         self.setup_employee_table(parent=self.employee_tab)
         self.setup_buttons(parent=self.employee_tab)
-        self.refresh_employee_list()
 
+        # Role-based UI gating: basic 'user' cannot add/edit/delete
+        if self.role == "user":
+            for child in self.employee_tab.winfo_children():
+                if isinstance(child, ttk.Frame):
+                    for btn in child.winfo_children():
+                        try:
+                            if isinstance(btn, ttk.Button) and btn.cget("text") in {"Add Employee", "Edit Employee", "Delete Employee"}:
+                                btn.state(["disabled"])
+                        except Exception:
+                            pass
+
+        try:
+            self.refresh_employee_list()
+        except Exception as e:
+            error_id(f"Initial employee list load failed: {e}", request_id)
+
+        # ----------------- Step-Up Eval Tab -----------------
         self.step_up_eval_tab = StepUpEvalTab(self.notebook, session)
         self.notebook.add(self.step_up_eval_tab, text="Step-Up Eval")
 
-        # Second tab: Skills Matrix Assignment
-        #self.skills_matrix_tab = SkillsMatrixAssignmentTab(self.notebook, session)
-        #self.notebook.add(self.skills_matrix_tab, text="Skills Matrix Assignment")
-
-        # NEW: Competency Assignment Form tab
+        # ----------------- Competency Assignment Form Tab -----------------
         self.competency_assignment_tab = CompetencyAssignmentFormTab(self.notebook, session)
         self.notebook.add(self.competency_assignment_tab, text="Competency Assignment Form")
-        self.attendance_shift_tab = AttendanceShiftTab(self.notebook, session)
 
-        # Pass the skills matrix tab reference to the task CRUD tabs!
-        #self.mechanical_task_tab = SkillTaskCrudTab(self.notebook, session, "Mechanical", self.skills_matrix_tab)
-        #self.notebook.add(self.mechanical_task_tab, text="Mechanical Tasks")
-
-        #self.electrical_task_tab = SkillTaskCrudTab(self.notebook, session, "Electrical", self.skills_matrix_tab)
-        #self.notebook.add(self.electrical_task_tab, text="Electrical Tasks")
-
-        #self.tool_task_tab = SkillTaskCrudTab(self.notebook, session, "Tool", self.skills_matrix_tab)
-        #self.notebook.add(self.tool_task_tab, text="Tool Tasks")
-
-        #self.operational_task_tab = SkillTaskCrudTab(self.notebook, session, "Operational", self.skills_matrix_tab)
-        #self.notebook.add(self.operational_task_tab, text="Operational Tasks")
-
-        # Skill Category CRUD tabs (after other tabs)
+        # ----------------- Attendance & Shifts Tab -----------------
+        # FIX: Wrap non-widget logic class with a real Frame for the Notebook
+        self.attendance_shift_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.attendance_shift_tab, text="Attendance & Shifts")
+        # Build the AttendanceShift UI inside the frame; keep a reference if the class exposes methods
+        # ----------------- Attendance & Shifts Tab -----------------
+        # Pass the NOTEBOOK to AttendanceShiftTab; it will add its own frame internally.
+        self.attendance_shift_ui = AttendanceShiftTab(self.notebook, session)
+        # ----------------- Skill Category CRUD Tabs -----------------
         self.technical_category_tab = SkillCategoryCrudTab(self.notebook, session, "TechnicalSkillCategory")
         self.notebook.add(self.technical_category_tab, text="Technical Skill Categories")
 
@@ -396,18 +795,107 @@ class EmployeeViewerApp:
         self.operational_type_tab = SkillCategoryCrudTab(self.notebook, session, "OperationalType")
         self.notebook.add(self.operational_type_tab, text="Operational Types")
 
+        # ----------------- Admin Menu (admins only) -----------------
+        if self.role == "admin":
+            self._setup_admin_menu()
+
+        # Tab change bindings
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
+    # ----------------- Menus -----------------
+    def _setup_admin_menu(self):
+        """Create/attach an Admin menu with Manage Users… (admins only)."""
+        # 1) Get an existing menubar if valid, else create a new one
+        menubar = None
+        try:
+            existing_name = self.root.cget("menu")  # Tcl name or ''
+        except Exception:
+            existing_name = ""
+
+        if existing_name:
+            try:
+                candidate = self.root.nametowidget(existing_name)
+                if isinstance(candidate, tk.Menu):
+                    menubar = candidate
+            except Exception:
+                menubar = None
+
+        if menubar is None:
+            menubar = tk.Menu(self.root)
+            self.root.config(menu=menubar)
+
+        # 2) Check if an "Admin" cascade already exists; if not, add it
+        admin_menu = None
+        try:
+            end_idx = menubar.index("end")
+        except Exception:
+            end_idx = None
+
+        if isinstance(end_idx, int):
+            for i in range(end_idx + 1):
+                try:
+                    if menubar.type(i) == "cascade":
+                        if menubar.entrycget(i, "label") == "Admin":
+                            # Get the submenu widget bound to this cascade
+                            submenu_name = menubar.entrycget(i, "menu")
+                            admin_menu = menubar.nametowidget(submenu_name)
+                            break
+                except Exception:
+                    pass
+
+        if admin_menu is None:
+            admin_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Admin", menu=admin_menu)
+
+        # 3) Ensure we have exactly one "Manage Users…" command (dedupe then add)
+        try:
+            end2 = admin_menu.index("end")
+        except Exception:
+            end2 = None
+
+        if isinstance(end2, int):
+            for i in range(end2, -1, -1):
+                try:
+                    if admin_menu.type(i) == "command" and admin_menu.entrycget(i, "label") == "Manage Users…":
+                        admin_menu.delete(i)
+                except Exception:
+                    pass
+
+        admin_menu.add_command(label="Manage Users…", command=lambda: ManageUsersDialog(self.root, session))
+
+    # ----------------- Tab Events -----------------
     def on_tab_changed(self, event):
         selected_tab = event.widget.select()
         tab_text = event.widget.tab(selected_tab, "text")
-        if tab_text == "Competency Assignment Form":
-            self.competency_assignment_tab.refresh_dropdowns()
-        elif tab_text == "Skills Matrix Assignment":
-            self.skills_matrix_tab.populate_skill_combos()
-            self.skills_matrix_tab.refresh_tasks()
 
-    def setup_employee_table(self,parent):
+        # Keep this resilient if some tabs are commented out
+        if tab_text == "Competency Assignment Form":
+            if hasattr(self, "competency_assignment_tab") and hasattr(self.competency_assignment_tab, "refresh_dropdowns"):
+                try:
+                    self.competency_assignment_tab.refresh_dropdowns()
+                except Exception as e:
+                    error_id(f"CompetencyAssignmentFormTab refresh failed: {e}", request_id)
+
+        elif tab_text == "Skills Matrix Assignment":
+            # Only run if you later re-enable the Skills Matrix tab
+            if hasattr(self, "skills_matrix_tab"):
+                try:
+                    if hasattr(self.skills_matrix_tab, "populate_skill_combos"):
+                        self.skills_matrix_tab.populate_skill_combos()
+                    if hasattr(self.skills_matrix_tab, "refresh_tasks"):
+                        self.skills_matrix_tab.refresh_tasks()
+                except Exception as e:
+                    error_id(f"SkillsMatrixAssignmentTab refresh failed: {e}", request_id)
+
+        elif tab_text == "Employees":
+            # Keep employee table fresh when coming back
+            try:
+                self.refresh_employee_list()
+            except Exception as e:
+                error_id(f"Employee list refresh on tab change failed: {e}", request_id)
+
+    # ----------------- Employees Table -----------------
+    def setup_employee_table(self, parent):
         columns = (
             'id', 'employee_id', 'name_first', 'name_last', 'hire_date',
             'birthdate', 'status', 'employee_type', 'reports_to_id'
@@ -440,132 +928,158 @@ class EmployeeViewerApp:
         return self.tree.item(selected[0])['values'][0]
 
     def refresh_employee_list(self):
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-        employees = session.query(Employee).all()
-        for emp in employees:
-            self.tree.insert('', 'end', values=(
-                emp.id, emp.employee_id, emp.name_first, emp.name_last,
-                emp.hire_date, emp.birthdate, emp.status,
-                emp.employee_type, emp.reports_to_id
-            ))
+        try:
+            for row in self.tree.get_children():
+                self.tree.delete(row)
+            employees = session.query(Employee).all()
+            for emp in employees:
+                self.tree.insert('', 'end', values=(
+                    emp.id, emp.employee_id, emp.name_first, emp.name_last,
+                    emp.hire_date, emp.birthdate, emp.status,
+                    emp.employee_type, emp.reports_to_id
+                ))
+        except Exception as e:
+            error_id(f"refresh_employee_list failed: {e}", request_id)
+            messagebox.showerror("Error", f"Could not refresh employees: {e}")
 
+    # ----------------- Employee CRUD -----------------
     def add_employee(self):
         dlg = EmployeeForm(self.root, "Add Employee")
-        if dlg.result:
-            data = dlg.result
-            etype = data.get("emp_type", "Employee")
-            if not data['Employee ID']:
-                messagebox.showerror("Error", "Employee ID is required.")
-                return
+        if not getattr(dlg, "result", None):
+            return
 
-            # Create employee (existing code)
-            if etype == "Supervisor":
-                new_emp = Supervisor(
-                    employee_id=data['Employee ID'],
-                    name_first=data['First Name'],
-                    name_last=data['Last Name'],
-                    hire_date=data['Hire Date'],
-                    birthdate=data['Birthdate'],
-                    status=data['Status'],
-                    employee_type=etype,
-                    reports_to_id=int(data['Reports To ID']) if data['Reports To ID'] else None,
-                    management_level=int(data.get("management_level") or 0)
-                )
-            elif etype == "MaintenancePerson":
-                new_emp = MaintenancePerson(
-                    employee_id=data['Employee ID'],
-                    name_first=data['First Name'],
-                    name_last=data['Last Name'],
-                    hire_date=data['Hire Date'],
-                    birthdate=data['Birthdate'],
-                    status=data['Status'],
-                    employee_type=etype,
-                    reports_to_id=int(data['Reports To ID']) if data['Reports To ID'] else None,
-                    maintenance_level=data.get("maintenance_level"),
-                    qualified_area=data.get("qualified_area")
-                )
-            else:
-                new_emp = Employee(
-                    employee_id=data['Employee ID'],
-                    name_first=data['First Name'],
-                    name_last=data['Last Name'],
-                    hire_date=data['Hire Date'],
-                    birthdate=data['Birthdate'],
-                    status=data['Status'],
-                    employee_type=etype,
-                    reports_to_id=int(data['Reports To ID']) if data['Reports To ID'] else None
-                )
+        data = dlg.result
+        etype = data.get("emp_type", "Employee")
+        if not data.get('Employee ID'):
+            messagebox.showerror("Error", "Employee ID is required.")
+            return
 
-            session.add(new_emp)
-            try:
+        # Create employee (existing code paths)
+        if etype == "Supervisor":
+            new_emp = Supervisor(
+                employee_id=data['Employee ID'],
+                name_first=data['First Name'],
+                name_last=data['Last Name'],
+                hire_date=data['Hire Date'],
+                birthdate=data['Birthdate'],
+                status=data['Status'],
+                employee_type=etype,
+                reports_to_id=int(data['Reports To ID']) if data.get('Reports To ID') else None,
+                management_level=int(data.get("management_level") or 0)
+            )
+        elif etype == "MaintenancePerson":
+            new_emp = MaintenancePerson(
+                employee_id=data['Employee ID'],
+                name_first=data['First Name'],
+                name_last=data['Last Name'],
+                hire_date=data['Hire Date'],
+                birthdate=data['Birthdate'],
+                status=data['Status'],
+                employee_type=etype,
+                reports_to_id=int(data['Reports To ID']) if data.get('Reports To ID') else None,
+                maintenance_level=data.get("maintenance_level"),
+                qualified_area=data.get("qualified_area")
+            )
+        else:
+            new_emp = Employee(
+                employee_id=data['Employee ID'],
+                name_first=data['First Name'],
+                name_last=data['Last Name'],
+                hire_date=data['Hire Date'],
+                birthdate=data['Birthdate'],
+                status=data['Status'],
+                employee_type=etype,
+                reports_to_id=int(data['Reports To ID']) if data.get('Reports To ID') else None
+            )
+
+        session.add(new_emp)
+        try:
+            session.commit()
+
+            # Save shift assignment after employee is created
+            if hasattr(dlg, "save_shift_assignment"):
+                dlg.save_shift_assignment(new_emp.id)
                 session.commit()
 
-                # NEW: Save shift assignment after employee is created
-                dlg.save_shift_assignment(new_emp.id)
-                session.commit()  # Commit the shift assignment
-
-                self.refresh_employee_list()
-                messagebox.showinfo("Success", f"Employee {new_emp.employee_id} added successfully!")
-
-            except Exception as e:
-                session.rollback()
-                messagebox.showerror("Error", f"Could not add employee: {e}")
+            self.refresh_employee_list()
+            messagebox.showinfo("Success", f"Employee {new_emp.employee_id} added successfully!")
+        except Exception as e:
+            session.rollback()
+            error_id(f"add_employee failed: {e}", request_id)
+            messagebox.showerror("Error", f"Could not add employee: {e}")
 
     def edit_employee(self):
         emp_id = self.get_selected_employee_id()
         if emp_id is None:
             messagebox.showwarning("Select Employee", "Please select an employee to edit.")
             return
+
         emp = session.get(Employee, emp_id)
+        if not emp:
+            messagebox.showerror("Error", f"Employee id {emp_id} not found.")
+            return
+
         dlg = EmployeeForm(self.root, "Edit Employee", employee=emp)
-        if dlg.result:
-            data = dlg.result
-            # Update employee fields (existing code)
-            emp.employee_id = data['Employee ID']
-            emp.name_first = data['First Name']
-            emp.name_last = data['Last Name']
-            emp.hire_date = data['Hire Date']
-            emp.birthdate = data['Birthdate']
-            emp.status = data['Status']
-            emp.employee_type = data['emp_type']
-            emp.reports_to_id = int(data['Reports To ID']) if data['Reports To ID'] else None
+        if not getattr(dlg, "result", None):
+            return
 
-            if isinstance(emp, Supervisor):
-                emp.management_level = int(data.get("management_level") or 0)
-            elif isinstance(emp, MaintenancePerson):
-                emp.maintenance_level = data.get("maintenance_level")
-                emp.qualified_area = data.get("qualified_area")
+        data = dlg.result
+        # Update employee fields (existing code)
+        emp.employee_id = data['Employee ID']
+        emp.name_first = data['First Name']
+        emp.name_last = data['Last Name']
+        emp.hire_date = data['Hire Date']
+        emp.birthdate = data['Birthdate']
+        emp.status = data['Status']
+        emp.employee_type = data['emp_type']
+        emp.reports_to_id = int(data['Reports To ID']) if data.get('Reports To ID') else None
 
-            try:
+        if isinstance(emp, Supervisor):
+            emp.management_level = int(data.get("management_level") or 0)
+        elif isinstance(emp, MaintenancePerson):
+            emp.maintenance_level = data.get("maintenance_level")
+            emp.qualified_area = data.get("qualified_area")
+
+        try:
+            session.commit()
+
+            # Save shift assignment after employee is updated
+            if hasattr(dlg, "save_shift_assignment"):
+                dlg.save_shift_assignment(emp.id)
                 session.commit()
 
-                # NEW: Save shift assignment after employee is updated
-                dlg.save_shift_assignment(emp.id)
-                session.commit()  # Commit the shift assignment
-
-                self.refresh_employee_list()
-                messagebox.showinfo("Success", f"Employee {emp.employee_id} updated successfully!")
-
-            except Exception as e:
-                session.rollback()
-                messagebox.showerror("Error", f"Could not update employee: {e}")
+            self.refresh_employee_list()
+            messagebox.showinfo("Success", f"Employee {emp.employee_id} updated successfully!")
+        except Exception as e:
+            session.rollback()
+            error_id(f"edit_employee failed: {e}", request_id)
+            messagebox.showerror("Error", f"Could not update employee: {e}")
 
     def delete_employee(self):
         emp_id = self.get_selected_employee_id()
         if emp_id is None:
             messagebox.showwarning("Select Employee", "Please select an employee to delete.")
             return
+
         if not messagebox.askyesno("Confirm Delete", "Are you sure you want to delete the selected employee?"):
             return
+
         emp = session.get(Employee, emp_id)
-        session.delete(emp)
+        if not emp:
+            messagebox.showerror("Error", f"Employee id {emp_id} not found.")
+            return
+
         try:
+            session.delete(emp)
             session.commit()
             self.refresh_employee_list()
+            messagebox.showinfo("Deleted", f"Employee {emp.employee_id} deleted.")
         except Exception as e:
             session.rollback()
+            error_id(f"delete_employee failed: {e}", request_id)
             messagebox.showerror("Error", f"Could not delete employee: {e}")
+
+
 
 class SkillTaskCrudTab(ttk.Frame):
     def __init__(self, parent, session, skill_type, skills_matrix_tab=None):
@@ -7546,7 +8060,18 @@ class AttendanceShiftTab:
             ))
 
 
+
 if __name__ == "__main__":
+    bootstrap = tk.Tk()
+    bootstrap.withdraw()
+
+    dlg = MultiUserLoginDialog(bootstrap, "Login", session)
+    user = dlg.current_user
+    bootstrap.destroy()
+
+    if not user:
+        sys.exit(0)
+
     root = tk.Tk()
-    app = EmployeeViewerApp(root)
+    app = EmployeeViewerApp(root, current_user=user)
     root.mainloop()

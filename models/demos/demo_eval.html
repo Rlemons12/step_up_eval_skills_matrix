@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maintenance Evaluation Demo</title>
+  <style>
+    :root{
+      --bg:#0f172a;         /* slate-900 */
+      --panel:#111827;      /* gray-900 */
+      --muted:#334155;      /* slate-600 */
+      --text:#e5e7eb;       /* gray-200 */
+      --accent:#60a5fa;     /* blue-400 */
+      --ok:#22c55e;         /* green-500 */
+      --warn:#f59e0b;       /* amber-500 */
+      --bad:#ef4444;        /* red-500 */
+      --card:#0b1223;       /* custom */
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0a0f20,#0f172a);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial}
+    header{padding:24px 20px 10px;position:sticky;top:0;background:linear-gradient(180deg, rgba(10,15,32,.9), rgba(15,23,42,.6));backdrop-filter: blur(8px);border-bottom:1px solid #1f2937;z-index:10}
+    header h1{margin:0;font-size:22px;letter-spacing:.3px}
+    header p{margin:6px 0 0;color:#9ca3af}
+    .wrap{max-width:1200px;margin:0 auto;padding:18px}
+    .grid{display:grid;gap:18px;grid-template-columns: 1.1fr .9fr}
+    @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg, #0a1021, #0c1327); border:1px solid #1f2a44;padding:18px;border-radius:var(--radius); box-shadow:var(--shadow)}
+    .card h2{margin:0 0 10px;font-size:18px;color:#dbeafe}
+    .sub{color:#9ca3af;font-size:13px;margin:0 0 12px}
+
+    label{display:block;margin:10px 0 6px;color:#cbd5e1;font-weight:600}
+    select,input[type="text"],input[type="date"],textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #243047;background:#0a1021;color:#e5e7eb;outline:none}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+    .row-3{display:grid;gap:12px;grid-template-columns:2fr 1fr 1fr}
+    .row-4{display:grid;gap:12px;grid-template-columns:repeat(4,1fr)}
+    @media (max-width:800px){.row,.row-3,.row-4{grid-template-columns:1fr}}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+    .tab{padding:8px 12px;border-radius:999px;border:1px solid #1f2a44;background:#0b1223;color:#cbd5e1;cursor:pointer}
+    .tab.active{background:#0e1a35;color:#dbeafe;outline:2px solid #284a8e}
+
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #1f2a44;background:#0e1a35;color:#e5e7eb;cursor:pointer}
+    .btn:hover{filter:brightness(1.1)}
+    .btn.primary{background:#1a2c57;border-color:#284a8e}
+    .btn.good{background:#0d3a1e;border-color:#1b5e2d}
+    .btn.warn{background:#4a3510;border-color:#8a6a20}
+    .btn.bad{background:#4a1310;border-color:#7a2b26}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px;border-bottom:1px solid #213055;vertical-align:top}
+    th{color:#93c5fd;text-align:left}
+    tr:hover td{background:#0d1530}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #1f2a44;background:#0b1223;color:#93c5fd}
+
+    .muted{color:#94a3b8}
+    .hint{font-size:12px;color:#94a3b8;margin-top:4px}
+    .divider{height:1px;background:#1f2a44;margin:14px 0}
+    .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Maintenance Evaluation – Demo Form</h1>
+      <p>Single-page HTML that mirrors your schema for employee competencies, tasks, and checklist progress.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="grid">
+      <!-- LEFT: DATA ENTRY -->
+      <div class="card">
+        <h2>1) Evaluate</h2>
+        <p class="sub">Capture <strong>EmployeeCompetency</strong> or <strong>EmployeeTaskProgress</strong> records with fields aligned to your tables.</p>
+
+        <div class="row">
+          <div>
+            <label for="employee">Employee (employees.id)</label>
+            <select id="employee"></select>
+          </div>
+          <div>
+            <label for="assessor">Assessed By (employees.id)</label>
+            <select id="assessor"></select>
+          </div>
+        </div>
+
+        <label>Evaluation Mode</label>
+        <div class="tabs" role="tablist" aria-label="Evaluation mode">
+          <button class="tab active" role="tab" aria-selected="true" id="tab-competency" onclick="setMode('competency')">Competency</button>
+          <button class="tab" role="tab" aria-selected="false" id="tab-task" onclick="setMode('task')">Checklist Task</button>
+        </div>
+
+        <!-- COMPETENCY PANEL -->
+        <div id="panel-competency" role="tabpanel" aria-labelledby="tab-competency">
+          <div class="row">
+            <div>
+              <label for="competencyType">Competency Type (core_competencies.competency_type)</label>
+              <select id="competencyType"></select>
+            </div>
+            <div>
+              <label for="competency">Competency (core_competencies.id)</label>
+              <select id="competency"></select>
+            </div>
+          </div>
+
+          <div class="row-3">
+            <div>
+              <label for="proficiency">Proficiency Achieved</label>
+              <select id="proficiency">
+                <option>Basic</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+              <div class="hint">Maps to <code>employee_competencies.proficiency_achieved</code></div>
+            </div>
+            <div>
+              <label for="levelAchieved">Level Achieved</label>
+              <select id="levelAchieved">
+                <option>Level 1</option>
+                <option>Level 2</option>
+                <option>Level 3</option>
+              </select>
+            </div>
+            <div>
+              <label for="status">Status</label>
+              <select id="status">
+                <option>Active</option>
+                <option>Expired</option>
+                <option>Needs Renewal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="dateAchieved">Date Achieved</label>
+              <input id="dateAchieved" type="date" />
+            </div>
+            <div>
+              <label for="notes">Notes</label>
+              <input id="notes" type="text" placeholder="Additional assessment notes" />
+            </div>
+          </div>
+
+          <div class="toolbar" style="margin-top:10px">
+            <button class="btn good" onclick="addCompetencyRecord()">Add Competency Record</button>
+          </div>
+        </div>
+
+        <!-- TASK PANEL -->
+        <div id="panel-task" role="tabpanel" aria-labelledby="tab-task" style="display:none">
+          <div class="row">
+            <div>
+              <label for="checklist">Area Checklist (area_checklists.id)</label>
+              <select id="checklist"></select>
+            </div>
+            <div>
+              <label for="section">Section (checklist_sections.id)</label>
+              <select id="section"></select>
+            </div>
+          </div>
+
+          <div class="row-3">
+            <div>
+              <label for="task">Task (checklist_tasks.id)</label>
+              <select id="task"></select>
+            </div>
+            <div>
+              <label for="taskStatus">Completion Status</label>
+              <select id="taskStatus">
+                <option>Not Started</option>
+                <option>In Progress</option>
+                <option>Complete</option>
+              </select>
+            </div>
+            <div>
+              <label for="taskDate">Completion Date</label>
+              <input id="taskDate" type="date" />
+            </div>
+          </div>
+
+          <label for="taskNotes">Notes</label>
+          <textarea id="taskNotes" placeholder="Evidence, observations, verifier, etc."></textarea>
+
+          <div class="toolbar" style="margin-top:10px">
+            <button class="btn good" onclick="addTaskProgress()">Add Task Progress</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: REVIEW / EXPORT -->
+      <div class="card">
+        <h2>2) Review & Export</h2>
+        <p class="sub">Preview JSON payloads you could POST to your Flask API. Nothing is saved—this is a front-end demo.</p>
+
+        <div class="inline">
+          <span class="pill">EmployeeCompetency</span>
+          <span class="muted">&</span>
+          <span class="pill">EmployeeTaskProgress</span>
+        </div>
+
+        <table id="reviewTable" aria-label="Review records table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Summary</th>
+              <th>JSON</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="divider"></div>
+        <div class="toolbar">
+          <button class="btn primary" onclick="downloadJSON()">Export All as JSON</button>
+          <button class="btn" onclick="clearAll()">Clear All</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px">
+      <h2>3) Skill Assignments (Optional)</h2>
+      <p class="sub">Shows how <code>TaskSkillAssignment</code> can connect a checklist task to technical tasks (electrical/mechanical/tools/operational).</p>
+      <div class="row-4">
+        <div>
+          <label for="tsaTask">Checklist Task</label>
+          <select id="tsaTask"></select>
+        </div>
+        <div>
+          <label for="tsaElectrical">Electrical Task</label>
+          <select id="tsaElectrical"></select>
+        </div>
+        <div>
+          <label for="tsaMechanical">Mechanical Task</label>
+          <select id="tsaMechanical"></select>
+        </div>
+        <div>
+          <label for="tsaTool">Tool Task</label>
+          <select id="tsaTool"></select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="tsaOperational">Operational Task</label>
+          <select id="tsaOperational"></select>
+        </div>
+        <div class="inline" style="align-items:flex-end">
+          <button class="btn" onclick="previewTSA()">Preview Link JSON</button>
+        </div>
+      </div>
+      <pre id="tsaPreview" style="margin-top:10px;background:#0a1021;border:1px solid #1f2a44;border-radius:12px;padding:12px;overflow:auto"></pre>
+    </section>
+
+    <section class="card" style="margin-top:18px">
+      <h2>4) Schema Mapping Guide</h2>
+      <ul>
+        <li><strong>EmployeeCompetency</strong>: maps <em>employee_id, competency_id, proficiency_achieved, level_achieved, date_achieved, assessed_by, status, notes</em>.</li>
+        <li><strong>EmployeeTaskProgress</strong>: maps <em>employee_id, checklist_task_id, competency_id (optional), completion_status, completion_date, notes</em>.</li>
+        <li><strong>TaskSkillAssignment</strong>: connects a <em>checklist_task_id</em> to one or more of <em>mechanical_task_id, electrical_task_id, tool_task_id, operational_task_id</em>.</li>
+      </ul>
+      <p class="hint">All lookups are mocked here but named to match your tables/columns so you can later replace with real API calls.</p>
+    </section>
+  </main>
+
+  <script>
+    /**
+     * MOCK DATA (replace with API calls to your Flask backend later)
+     * The shapes mirror your SQLAlchemy models.
+     */
+    const employees = [
+      { id: 1, employee_id: 'E1001', name_first: 'Alex', name_last: 'Stone' },
+      { id: 2, employee_id: 'E1002', name_first: 'Jordan', name_last: 'Lee' },
+      { id: 3, employee_id: 'E1003', name_first: 'Sam', name_last: 'Rivera' },
+    ];
+
+    const competencyTypes = [
+      { key: 'academic', label: 'Academic' },
+      { key: 'safety', label: 'Safety' },
+      { key: 'leadership', label: 'Leadership' },
+      { key: 'communication', label: 'Communication' },
+      { key: 'training', label: 'Training' },
+      { key: 'technical', label: 'Technical' },
+      { key: 'electrical', label: 'Electrical' },
+      { key: 'mechanical', label: 'Mechanical' },
+      { key: 'tools', label: 'Tools' },
+      { key: 'operational', label: 'Operational' },
+    ];
+
+    // Minimal sample competencies (id & type must match the selects)
+    const competencies = [
+      { id: 101, competency_name: 'LOTO Basics', competency_type: 'safety' },
+      { id: 102, competency_name: 'Arc Flash Awareness', competency_type: 'safety' },
+      { id: 201, competency_name: 'Multimeter Use', competency_type: 'tools' },
+      { id: 301, competency_name: 'Read Electrical Schematics', competency_type: 'electrical' },
+      { id: 401, competency_name: 'Bearing Replacement', competency_type: 'mechanical' },
+      { id: 501, competency_name: 'Operate Bag Sealer - Manual', competency_type: 'operational' },
+    ];
+
+    // Area checklists -> sections -> tasks (very small mock)
+    const areaChecklists = [
+      { id: 1, document_number: 'AC-001', description: 'Conveyor Line A', area: 'A1' },
+      { id: 2, document_number: 'AC-002', description: 'Sealer Station 2', area: 'S2' },
+    ];
+
+    const sectionsByChecklist = {
+      1: [ { id: 11, section_name: 'Startup' }, { id: 12, section_name: 'Shutdown' } ],
+      2: [ { id: 21, section_name: 'Manual Mode' }, { id: 22, section_name: 'Safety' } ],
+    };
+
+    const tasksBySection = {
+      11: [ { id: 111, task_description: 'Inspect belt tracking' }, { id: 112, task_description: 'Verify guards' } ],
+      12: [ { id: 121, task_description: 'Clean debris' } ],
+      21: [ { id: 211, task_description: 'Jog motor and verify direction' } ],
+      22: [ { id: 221, task_description: 'Test E-Stop' } ],
+    };
+
+    // Technical task catalogs (very small)
+    const electricalTasks = [
+      { id: 801, task_action: 'Test', task_object: 'Photoeye' },
+      { id: 802, task_action: 'Wire', task_object: 'VFD Control' },
+    ];
+    const mechanicalTasks = [
+      { id: 901, task_action: 'Replace', task_object: 'Bearing' },
+      { id: 902, task_action: 'Align', task_object: 'Sprocket' },
+    ];
+    const toolTasks = [
+      { id: 701, task_action: 'Measure', task_object: 'Voltage' },
+      { id: 702, task_action: 'Torque', task_object: 'Fasteners' },
+    ];
+    const operationalTasks = [
+      { id: 601, task_action: 'Operate', task_object: 'Bag Sealer (Manual)' },
+      { id: 602, task_action: 'Operate', task_object: 'Conveyor Auto' },
+    ];
+
+    // Working set for review table
+    const reviewRows = [];
+
+    /** UTIL **/
+    const byId = (id) => document.getElementById(id);
+    const fmtName = (e) => e ? `${e.name_first} ${e.name_last}` : '';
+
+    function fillSelect(sel, items, map){
+      sel.innerHTML = '';
+      items.forEach(it => {
+        const o = document.createElement('option');
+        const { value, label } = map(it);
+        o.value = value; o.textContent = label;
+        sel.appendChild(o);
+      });
+    }
+
+    function setMode(mode){
+      const compTab = byId('tab-competency');
+      const taskTab = byId('tab-task');
+      const compPanel = byId('panel-competency');
+      const taskPanel = byId('panel-task');
+
+      if(mode === 'competency'){
+        compTab.classList.add('active'); compTab.setAttribute('aria-selected','true');
+        taskTab.classList.remove('active'); taskTab.setAttribute('aria-selected','false');
+        compPanel.style.display='block'; taskPanel.style.display='none';
+      } else {
+        taskTab.classList.add('active'); taskTab.setAttribute('aria-selected','true');
+        compTab.classList.remove('active'); compTab.setAttribute('aria-selected','false');
+        taskPanel.style.display='block'; compPanel.style.display='none';
+      }
+    }
+
+    /** INITIALIZE FORM **/
+    function init(){
+      // employees into two selects (employee + assessor)
+      fillSelect(byId('employee'), employees, e => ({ value: e.id, label: `${fmtName(e)} (${e.employee_id})` }));
+      fillSelect(byId('assessor'), employees, e => ({ value: e.id, label: `${fmtName(e)} (${e.employee_id})` }));
+
+      // competency type + competency list (filtered by type)
+      fillSelect(byId('competencyType'), competencyTypes, c => ({ value: c.key, label: c.label }));
+      updateCompetencyOptions();
+      byId('competencyType').addEventListener('change', updateCompetencyOptions);
+
+      // checklists + dependent section/task dropdowns
+      fillSelect(byId('checklist'), areaChecklists, c => ({ value: c.id, label: `${c.document_number} – ${c.description}` }));
+      updateSections();
+      byId('checklist').addEventListener('change', updateSections);
+      byId('section').addEventListener('change', updateTasks);
+
+      // TSA selects
+      // Use all tasks across sections for demo
+      const allTasks = Object.values(tasksBySection).flat();
+      fillSelect(byId('tsaTask'), allTasks, t => ({ value: t.id, label: `${t.id} – ${t.task_description}` }));
+      fillSelect(byId('tsaElectrical'), electricalTasks, t => ({ value: t.id, label: `${t.id} – ${t.task_action} ${t.task_object}` }));
+      fillSelect(byId('tsaMechanical'), mechanicalTasks, t => ({ value: t.id, label: `${t.id} – ${t.task_action} ${t.task_object}` }));
+      fillSelect(byId('tsaTool'), toolTasks, t => ({ value: t.id, label: `${t.id} – ${t.task_action} ${t.task_object}` }));
+      fillSelect(byId('tsaOperational'), operationalTasks, t => ({ value: t.id, label: `${t.id} – ${t.task_action} ${t.task_object}` }));
+
+      // Default dates
+      const today = new Date().toISOString().slice(0,10);
+      byId('dateAchieved').value = today;
+      byId('taskDate').value = today;
+
+      renderTable();
+    }
+
+    function updateCompetencyOptions(){
+      const type = byId('competencyType').value;
+      const filtered = competencies.filter(c => c.competency_type === type);
+      fillSelect(byId('competency'), filtered, c => ({ value: c.id, label: `${c.id} – ${c.competency_name}` }));
+    }
+
+    function updateSections(){
+      const cid = Number(byId('checklist').value);
+      const sections = sectionsByChecklist[cid] || [];
+      fillSelect(byId('section'), sections, s => ({ value: s.id, label: `${s.id} – ${s.section_name}` }));
+      updateTasks();
+    }
+
+    function updateTasks(){
+      const sid = Number(byId('section').value);
+      const tasks = tasksBySection[sid] || [];
+      fillSelect(byId('task'), tasks, t => ({ value: t.id, label: `${t.id} – ${t.task_description}` }));
+    }
+
+    /** ADD ROWS **/
+    function addCompetencyRecord(){
+      const employee_id = Number(byId('employee').value);
+      const assessed_by = Number(byId('assessor').value);
+      const competency_id = Number(byId('competency').value);
+
+      const row = {
+        type: 'EmployeeCompetency',
+        payload: {
+          employee_id,                // FK -> employees.id
+          competency_id,              // FK -> core_competencies.id
+          proficiency_achieved: byId('proficiency').value,
+          level_achieved: byId('levelAchieved').value,
+          date_achieved: byId('dateAchieved').value,
+          assessed_by,                // FK -> employees.id
+          status: byId('status').value,
+          notes: byId('notes').value
+        }
+      };
+      reviewRows.push(row);
+      renderTable();
+    }
+
+    function addTaskProgress(){
+      const employee_id = Number(byId('employee').value);
+      const checklist_task_id = Number(byId('task').value);
+
+      const row = {
+        type: 'EmployeeTaskProgress',
+        payload: {
+          employee_id,                 // FK -> employees.id
+          checklist_task_id,           // FK -> checklist_tasks.id
+          competency_id: null,         // Optional: can tie to a competency if you want
+          completion_status: byId('taskStatus').value,
+          completion_date: byId('taskDate').value,
+          notes: byId('taskNotes').value
+        }
+      };
+      reviewRows.push(row);
+      renderTable();
+    }
+
+    /** TSA PREVIEW **/
+    function previewTSA(){
+      const json = {
+        checklist_task_id: Number(byId('tsaTask').value),
+        electrical_task_id: Number(byId('tsaElectrical').value) || null,
+        mechanical_task_id: Number(byId('tsaMechanical').value) || null,
+        tool_task_id: Number(byId('tsaTool').value) || null,
+        operational_task_id: Number(byId('tsaOperational').value) || null,
+      };
+      byId('tsaPreview').textContent = JSON.stringify(json, null, 2);
+    }
+
+    /** TABLE RENDER **/
+    function renderTable(){
+      const tb = byId('reviewTable').querySelector('tbody');
+      tb.innerHTML = '';
+
+      reviewRows.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        const tdType = document.createElement('td');
+        const tdSummary = document.createElement('td');
+        const tdJson = document.createElement('td');
+        const tdAct = document.createElement('td');
+
+        tdType.textContent = r.type;
+
+        // create a readable summary
+        const p = r.payload;
+        let summary = '';
+        if(r.type === 'EmployeeCompetency'){
+          const emp = employees.find(e => e.id === p.employee_id);
+          const comp = competencies.find(c => c.id === p.competency_id);
+          summary = `${fmtName(emp)} • ${comp ? comp.competency_name : 'Competency'} • ${p.proficiency_achieved} • ${p.level_achieved} • ${p.status}`;
+        } else {
+          const emp = employees.find(e => e.id === p.employee_id);
+          summary = `${fmtName(emp)} • Task ${p.checklist_task_id} • ${p.completion_status}`;
+        }
+        tdSummary.textContent = summary;
+
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(r.payload, null, 2);
+        pre.style.margin = 0;
+        pre.style.maxWidth = '380px';
+        pre.style.overflow = 'auto';
+        tdJson.appendChild(pre);
+
+        const rm = document.createElement('button');
+        rm.className = 'btn bad';
+        rm.textContent = 'Remove';
+        rm.addEventListener('click', () => { reviewRows.splice(idx,1); renderTable(); });
+        tdAct.appendChild(rm);
+
+        tr.appendChild(tdType); tr.appendChild(tdSummary); tr.appendChild(tdJson); tr.appendChild(tdAct);
+        tb.appendChild(tr);
+      });
+    }
+
+    /** EXPORT/CLEAR **/
+    function downloadJSON(){
+      const blob = new Blob([JSON.stringify(reviewRows, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'eval_payloads.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearAll(){
+      reviewRows.splice(0, reviewRows.length);
+      renderTable();
+      byId('tsaPreview').textContent='';
+    }
+
+    // Kick off
+    init();
+  </script>
+</body>
+</html>
