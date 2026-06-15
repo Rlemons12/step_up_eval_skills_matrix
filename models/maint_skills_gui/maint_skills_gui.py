@@ -1227,8 +1227,8 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.setup_editing_indicators()
 
         # Optionally initialize the dynamic vars (for later assignment in each section)
-        self.proficiency_var = None  # Will be created per-section in dynamic form
-        self.level_var = None  # Will be created per-section in dynamic form
+        self.proficiency_var = tk.StringVar()
+        self.level_var = tk.StringVar()
 
         # CREATE SCROLLABLE CONTAINER FIRST
         self.create_scrollable_container()
@@ -1980,13 +1980,17 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             self.task_details_status.config(text="")
 
     def create_checklist_section(self, parent):
-        # Checklist Task Selection
-        checklist_frame = ttk.LabelFrame(self.scrollable_frame, text="1. Select or Create Checklist Task", padding=10)
+        # Checklist Task / Competency Selection
+        checklist_frame = ttk.LabelFrame(self.scrollable_frame, text="1. Select or Create", padding=10)
         checklist_frame.pack(fill='x', pady=(0, 10))
 
-        # Add description label
-        desc_label = ttk.Label(checklist_frame, text="Choose to use an existing checklist task or create a new one.",
-                               font=('TkDefaultFont', 9), foreground='gray')
+        # Updated description to include the new option
+        desc_label = ttk.Label(
+            checklist_frame,
+            text="Choose to use an existing checklist task, create a new checklist task, or create a new competency.",
+            font=('TkDefaultFont', 9),
+            foreground='gray'
+        )
         desc_label.grid(row=0, column=0, columnspan=4, sticky='w', pady=(0, 10))
 
         # Mode selection radio buttons
@@ -1995,13 +1999,24 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         mode_frame = ttk.Frame(checklist_frame)
         mode_frame.grid(row=1, column=0, columnspan=4, sticky='w', pady=(0, 15))
 
-        ttk.Radiobutton(mode_frame, text="Use Existing Task",
-                        variable=self.task_mode_var, value="existing",
-                        command=self.on_task_mode_changed).pack(side='left', padx=(0, 20))
+        ttk.Radiobutton(
+            mode_frame, text="Use Existing Task",
+            variable=self.task_mode_var, value="existing",
+            command=self.on_task_mode_changed
+        ).pack(side='left', padx=(0, 20))
 
-        ttk.Radiobutton(mode_frame, text="Create New Task",
-                        variable=self.task_mode_var, value="create",
-                        command=self.on_task_mode_changed).pack(side='left')
+        ttk.Radiobutton(
+            mode_frame, text="Create New Task",
+            variable=self.task_mode_var, value="create",
+            command=self.on_task_mode_changed
+        ).pack(side='left', padx=(0, 20))
+
+        # NEW: create a competency directly
+        ttk.Radiobutton(
+            mode_frame, text="Create New Competency",
+            variable=self.task_mode_var, value="create_competency",
+            command=self.on_task_mode_changed
+        ).pack(side='left')
 
         # Dynamic content frame that changes based on mode
         self.task_selection_frame = ttk.Frame(checklist_frame)
@@ -2012,18 +2027,20 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.create_existing_task_widgets()
 
     def on_task_mode_changed(self):
-        """Handle switching between existing task and create new task modes"""
-        # Clear the current widgets
-        for widget in self.task_selection_frame.winfo_children():
-            widget.destroy()
+        # Clear current dynamic area
+        for w in self.task_selection_frame.winfo_children():
+            w.destroy()
 
-        # Reset current task
+        # Reset any cached selection if needed
         self.current_checklist_task = None
 
-        if self.task_mode_var.get() == "existing":
+        mode = self.task_mode_var.get()
+        if mode == "existing":
             self.create_existing_task_widgets()
-        else:
+        elif mode == "create":
             self.create_new_task_widgets()
+        elif mode == "create_competency":
+            self.create_new_competency_widgets()  # NEW
 
     def create_existing_task_widgets(self):
         """Create widgets for selecting existing tasks"""
@@ -2286,16 +2303,31 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             messagebox.showerror("Error", f"Failed to create new task: {e}")
 
     def create_competency_type_section(self, parent):
+        # Competency Name Section
+        name_frame = ttk.LabelFrame(parent, text="1. Competency Name", padding=10)
+        name_frame.pack(fill='x', pady=(0, 10))
+
+        ttk.Label(name_frame, text="Enter Competency Name:").pack(side="left", padx=5, pady=5)
+
+        # Store the name in a Tkinter StringVar
+        self.comp_name_var = tk.StringVar()
+        name_entry = ttk.Entry(name_frame, textvariable=self.comp_name_var, width=40)
+        name_entry.pack(side="left", padx=5, pady=5)
+
         # Competency Type Selection
         comp_type_frame = ttk.LabelFrame(parent, text="2. Select Competency Type", padding=10)
         comp_type_frame.pack(fill='x', pady=(0, 10))
 
         # Add description
-        desc_label = ttk.Label(comp_type_frame,
-                               text="Choose the type of competency needed for this task. This determines what skills and knowledge are required.",
-                               font=('TkDefaultFont', 9), foreground='gray')
+        desc_label = ttk.Label(
+            comp_type_frame,
+            text="Choose the type of competency needed for this task. "
+                 "This determines what skills and knowledge are required.",
+            font=('TkDefaultFont', 9), foreground='gray'
+        )
         desc_label.grid(row=0, column=0, columnspan=3, sticky='w', pady=(0, 10))
 
+        # Variable for type selection
         self.competency_type_var = tk.StringVar()
 
         # Create radio buttons in a grid with descriptions
@@ -2316,15 +2348,17 @@ class CompetencyAssignmentFormTab(ttk.Frame):
             col = (i % 2) * 2  # Columns 0, 2, 4...
 
             # Radio button
-            ttk.Radiobutton(comp_type_frame, text=display_name,
-                            variable=self.competency_type_var, value=value,
-                            command=self.on_competency_type_selected).grid(
-                row=row, column=col, sticky='w', padx=(0, 10), pady=2)
+            ttk.Radiobutton(
+                comp_type_frame, text=display_name,
+                variable=self.competency_type_var, value=value,
+                command=self.on_competency_type_selected
+            ).grid(row=row, column=col, sticky='w', padx=(0, 10), pady=2)
 
             # Description
-            desc = ttk.Label(comp_type_frame, text=f"({description})",
-                             font=('TkDefaultFont', 8), foreground='blue')
-            desc.grid(row=row, column=col + 1, sticky='w', pady=2)
+            ttk.Label(
+                comp_type_frame, text=f"({description})",
+                font=('TkDefaultFont', 8), foreground='blue'
+            ).grid(row=row, column=col + 1, sticky='w', pady=2)
 
     def create_dynamic_section(self, parent):
         # Dynamic section that changes based on competency type
@@ -3282,34 +3316,127 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         self.mech_equipment_var.set('')
 
     def preview_assignment(self):
-        """Preview the assignment that will be created"""
-        if not self.current_checklist_task:
+        mode = self.task_mode_var.get() if hasattr(self, "task_mode_var") else "existing"
+
+        # --- Create New Competency mode: no checklist task required ---
+        if mode == "create_competency":
+            # Validate minimal competency fields
+            name = (self.new_competency_name_var.get().strip()
+                    if hasattr(self, "new_competency_name_var") else "")
+            if not name:
+                messagebox.showwarning("Missing", "Please enter a Competency Name.")
+                return
+
+            comp_type = self.competency_type_var.get().strip() if hasattr(self, "competency_type_var") else ""
+            if not comp_type:
+                messagebox.showwarning("Missing", "Please select a Competency Type (Section 2).")
+                return
+
+            level = self.base_level_var.get().strip() if hasattr(self, "base_level_var") else ""
+            prof = self.base_prof_var.get().strip() if hasattr(self, "base_prof_var") else ""
+
+            # Optional task signature (if you captured it)
+            action = self.task_action_var.get().strip() if hasattr(self, "task_action_var") else ""
+            obj = self.task_object_var.get().strip() if hasattr(self, "task_object_var") else ""
+            verif = self.verification_text.get("1.0", "end").strip() if hasattr(self, "verification_text") else ""
+
+            # Build subtype summary if you have dynamic widgets
+            subtype_lines = []
+            if hasattr(self, "dynamic_widgets") and comp_type in self.dynamic_widgets:
+                w = self.dynamic_widgets[comp_type]
+
+                # Only include fields that exist and have a value
+                def v(key):
+                    return w.get(key).get().strip() if key in w and hasattr(w[key], "get") else ""
+
+                # Examples (add or remove depending on your types)
+                if comp_type == "operational":
+                    subtype_lines += [f"Operation Type: {v('operation_type')}", f"Machine Type: {v('machine_type')}"]
+                elif comp_type == "electrical":
+                    subtype_lines += [f"Sub-category: {v('subcategory')}", f"Voltage Level: {v('voltage')}"]
+                elif comp_type == "mechanical":
+                    subtype_lines += [f"Sub-category: {v('subcategory')}", f"Equipment Category: {v('equipment')}"]
+                elif comp_type == "tools":
+                    subtype_lines += [f"Tool Type: {v('tool_type')}", f"Primary Application: {v('application')}"]
+                # You can add safety/leadership/communication/training similarly
+
+            # Show preview window
+            win = tk.Toplevel(self)
+            win.title("Preview: New Competency")
+            win.geometry("520x420")
+            frame = ttk.Frame(win, padding=12)
+            frame.pack(fill="both", expand=True)
+
+            def add(label, value):
+                if value:
+                    ttk.Label(frame, text=f"{label}", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+                    ttk.Label(frame, text=value, wraplength=480).pack(anchor="w", pady=(0, 8))
+
+            add("Competency Name", name)
+            add("Type", comp_type)
+            add("Level", level)
+            add("Proficiency", prof)
+            if subtype_lines:
+                add("Subtype Details", "\n".join([ln for ln in subtype_lines if ln and not ln.endswith(": ")]))
+            if action or obj or verif:
+                add("Task Signature (optional)",
+                    "\n".join(filter(None, [
+                        f"Action: {action}" if action else "",
+                        f"Object: {obj}" if obj else "",
+                        f"Verification: {verif}" if verif else "",
+                    ])))
+            ttk.Button(frame, text="Close", command=win.destroy).pack(anchor="e", pady=(8, 0))
+            return
+
+        # --- Checklist task modes: existing / create ---
+        # Keep your existing validations for checklist task flows
+        if not getattr(self, "current_checklist_task", None):
+            # (Also fix the typo in your message)
             if self.task_mode_var.get() == "existing":
                 messagebox.showwarning("No Task", "Please select a checklist task first.")
             else:
                 messagebox.showwarning("No Task", "Please create a checklist task first.")
             return
 
-        preview_text = f"Checklist Task: {self.current_checklist_task.task_description}\n"
-        preview_text += f"Task Mode: {'Existing' if self.task_mode_var.get() == 'existing' else 'Newly Created'}\n"
-        preview_text += f"Competency Type: {self.competency_type_var.get()}\n"
+        if not self.competency_type_var.get():
+            messagebox.showwarning("No Competency Type", "Please select a competency type.")
+            return
 
-        comp_type = self.competency_type_var.get()
-        if comp_type in self.dynamic_widgets:
-            for key, var in self.dynamic_widgets[comp_type].items():
-                preview_text += f"{key.title()}: {var.get()}\n"
+        if not self.task_action_var.get() or not self.task_object_var.get():
+            messagebox.showwarning("Missing Task Info", "Please provide task action and object.")
+            return
 
-        preview_text += f"Task Action: {self.task_action_var.get()}\n"
-        preview_text += f"Task Object: {self.task_object_var.get()}\n"
-        preview_text += f"Verification Method: {self.verification_text.get('1.0', tk.END).strip()}\n"
+        # Build your existing checklist-task preview (unchanged)
+        # Example skeleton:
+        task = self.current_checklist_task
+        name = self.competency_type_var.get()
+        action = self.task_action_var.get()
+        obj = self.task_object_var.get()
+        verif = self.verification_text.get("1.0", "end").strip() if hasattr(self, "verification_text") else ""
 
-        self.preview_text.config(state='normal')
-        self.preview_text.delete('1.0', tk.END)
-        self.preview_text.insert('1.0', preview_text)
-        self.preview_text.config(state='disabled')
+        win = tk.Toplevel(self)
+        win.title("Preview: Assignment")
+        win.geometry("520x420")
+        frame = ttk.Frame(win, padding=12)
+        frame.pack(fill="both", expand=True)
+
+        def add(label, value):
+            if value:
+                ttk.Label(frame, text=f"{label}", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+                ttk.Label(frame, text=value, wraplength=480).pack(anchor="w", pady=(0, 8))
+
+        add("Checklist Task", getattr(task, "task_description", str(task)))
+        add("Competency Type", name)
+        add("Task Action", action)
+        add("Task Object", obj)
+        add("Verification", verif)
+        ttk.Button(frame, text="Close", command=win.destroy).pack(anchor="e", pady=(8, 0))
 
     def save_assignment(self):
         """Save or update the competency assignment (edit or add)."""
+        mode = self.task_mode_var.get() if hasattr(self, "task_mode_var") else "existing"
+        if mode == "create_competency":
+            return self.save_new_competency_only()
         if not self.current_checklist_task:
             if self.task_mode_var.get() == "existing":
                 messagebox.showwarning("No Task", "Please select a checklist task first.")
@@ -3363,6 +3490,91 @@ class CompetencyAssignmentFormTab(ttk.Frame):
         except Exception as e:
             self.session.rollback()
             messagebox.showerror("Error", f"Failed to save assignment: {e}")
+
+    def save_new_competency_only(self):
+        try:
+            # --- Ensure required vars exist ---
+            if not hasattr(self, "comp_name_var") or not hasattr(self, "competency_type_var"):
+                raise AttributeError("Competency Type or Name field not initialized in the form")
+
+            # --- Collect values ---
+            comp_type = (self.competency_type_var.get() or "").strip()
+            comp_name = (self.comp_name_var.get() or "").strip()
+            level = (self.level_var.get() or "").strip() if self.level_var else None
+            prof = (self.proficiency_var.get() or "").strip() if self.proficiency_var else None
+
+            # --- Validation ---
+            if not comp_type:
+                messagebox.showerror("Error", "Please select a Competency Type before saving.")
+                return
+            if not comp_name:
+                messagebox.showerror("Error", "Please enter a Competency Name before saving.")
+                return
+
+            # --- Choose subclass based on comp_type ---
+            if comp_type == "mechanical":
+                new_competency = MechanicalSkill(
+                    competency_name=comp_name,
+                    level=level or None,
+                    proficiency_level=prof or None,
+                    sub_category=None,  # TODO: hook up to GUI field if you want
+                    equipment_category=None  # TODO: hook up to GUI field if you want
+                )
+            elif comp_type == "electrical":
+                new_competency = ElectricalSkill(
+                    competency_name=comp_name,
+                    level=level or None,
+                    proficiency_level=prof or None,
+                    sub_category=None,  # TODO: bind to GUI
+                    voltage_level=None  # TODO: bind to GUI
+                )
+            elif comp_type == "tools":
+                new_competency = ToolSkill(
+                    competency_name=comp_name,
+                    level=level or None,
+                    proficiency_level=prof or None,
+                    tool_type=None,  # TODO: bind to GUI
+                    primary_application=None  # TODO: bind to GUI
+                )
+            elif comp_type == "operational":
+                new_competency = OperationalSkill(
+                    competency_name=comp_name,
+                    level=level or None,
+                    proficiency_level=prof or None,
+                    operation_type=None,  # TODO: bind to GUI
+                    machine_type=None  # TODO: bind to GUI
+                )
+            else:
+                # Fallback for academic, safety, leadership, training, communication, etc.
+                new_competency = CoreCompetency(
+                    competency_type=comp_type,
+                    competency_name=comp_name,
+                    level=level or None,
+                    proficiency_level=prof or None
+                )
+
+            # --- Save to DB ---
+            self.session.add(new_competency)
+            self.session.commit()
+
+            # --- Assignment popup ---
+            try:
+                if messagebox.askyesno("Assign Now?", "Competency saved. Assign it to a Model/Location/Asset now?"):
+                    self._open_competency_assignment_popup(new_competency)
+            except Exception as e:
+                messagebox.showwarning("Assignment Popup", f"Could not open assignment popup: {e}")
+
+            # --- Reset UI ---
+            self.reset_form()
+            if hasattr(self, "populate_competency_dropdowns"):
+                self.populate_competency_dropdowns()
+
+            messagebox.showinfo("Success", f"Competency '{comp_name}' saved.")
+
+        except Exception as e:
+            self.session.rollback()
+            step_up_eval_logger.error(f"[GUI] Failed to save competency: {e}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to save competency: {e}")
 
     def create_mechanical_assignment(self, editing_existing=False):
         """Create or update mechanical skill and task assignment with proper linking"""
@@ -5162,6 +5374,65 @@ class CompetencyAssignmentFormTab(ttk.Frame):
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load assignment for editing: {e}")
+
+    def create_new_competency_widgets(self):
+        # Header
+        header = ttk.Label(
+            self.task_selection_frame,
+            text=(
+                "Create a new competency (independent of checklist tasks). "
+                "Use Section 2 to choose the type and Section 3 to fill details."
+            ),
+            foreground="gray"
+        )
+        header.grid(row=0, column=0, sticky="w", pady=(0, 8))
+
+        # Name
+        ttk.Label(self.task_selection_frame, text="Competency Name:").grid(row=1, column=0, sticky="w")
+        self.new_competency_name_var = tk.StringVar()
+        ttk.Entry(
+            self.task_selection_frame,
+            textvariable=self.new_competency_name_var,
+            width=50
+        ).grid(row=2, column=0, sticky="w", pady=(0, 6))
+
+        # Optional: base level / proficiency
+        wrap = ttk.Frame(self.task_selection_frame)
+        wrap.grid(row=3, column=0, sticky="w", pady=(4, 0))
+
+        ttk.Label(wrap, text="Level:").pack(side="left", padx=(0, 6))
+        self.base_level_var = tk.StringVar()
+        ttk.Combobox(
+            wrap,
+            textvariable=self.base_level_var,
+            values=["", "Level 1", "Level 2", "Level 3", "Maintenance Tech", "Operator"],
+            width=18,
+            state="readonly"
+        ).pack(side="left", padx=(0, 12))
+
+        ttk.Label(wrap, text="Proficiency:").pack(side="left", padx=(0, 6))
+        self.base_prof_var = tk.StringVar()
+        ttk.Combobox(
+            wrap,
+            textvariable=self.base_prof_var,
+            values=["", "A", "B", "C"],
+            width=8,
+            state="readonly"
+        ).pack(side="left")
+
+    def _open_competency_assignment_popup(self, competency_obj):
+        def _refresh_after():
+            try:
+                if hasattr(self, "refresh_current_task_details"):
+                    self.refresh_current_task_details()
+                if hasattr(self, "populate_competency_dropdowns"):
+                    self.populate_competency_dropdowns()
+            except Exception:
+                pass
+
+        # If the popup class is in the same file above this class, you can call it directly:
+        CompetencyAssignmentPopup(self, self.session, competency_obj, on_done=_refresh_after)
+
 
 class StepUpEvalTab(ttk.Frame):
     def __init__(self, parent, session):
@@ -7544,6 +7815,249 @@ class AttendanceShiftTab:
                 days_str,
                 status
             ))
+
+# --- imports (keep near other Tk imports) ---
+import tkinter as tk
+from tkinter import ttk, messagebox
+from datetime import datetime
+
+# --- Popup: assign a competency to Model + Location (required), Asset (optional) ---
+class CompetencyAssignmentPopup(tk.Toplevel):
+    """
+    Assign a competency to a specific (Model, Location) with optional AssetNumber,
+    and capture required/notes/effective dates that exist in your schema.
+    """
+    def __init__(self, parent, session, competency_obj, on_done=None):
+        super().__init__(parent)
+        self.title("Assign Competency to Model/Location")
+        self.session = session
+        self.competency = competency_obj
+        self.on_done = on_done
+
+        # Modal behavior
+        self.transient(parent)
+        self.grab_set()
+
+        # UI state
+        self.model_var = tk.StringVar()
+        self.location_var = tk.StringVar()
+        self.asset_var = tk.StringVar()
+        self.required_var = tk.BooleanVar(value=True)
+        self.notes_var = tk.StringVar()
+        self.eff_start_var = tk.StringVar()  # YYYY-MM-DD
+        self.eff_end_var = tk.StringVar()    # YYYY-MM-DD
+
+        # Id label caches
+        self._models = []      # list[(id, name)]
+        self._locations = []   # list[(id, name)]
+        self._assets = []      # list[(id, label)]
+
+        self._build_ui()
+        self._load_models()
+
+        self.model_combo.bind("<<ComboboxSelected>>", self._on_model_changed)
+
+        self.protocol("WM_DELETE_WINDOW", self._close)
+
+    def _build_ui(self):
+        frm = ttk.Frame(self, padding=12)
+        frm.pack(fill="both", expand=True)
+
+        ttk.Label(frm, text="Assign Competency", font=("TkDefaultFont", 12, "bold")).grid(row=0, column=0, columnspan=4, sticky="w")
+        ttk.Label(frm, text=f"Competency: {self.competency.competency_name or '(unnamed)'}").grid(row=1, column=0, columnspan=4, sticky="w", pady=(0, 8))
+
+        # Model (required)
+        ttk.Label(frm, text="Model (required):").grid(row=2, column=0, sticky="e", padx=(0, 6))
+        self.model_combo = ttk.Combobox(frm, textvariable=self.model_var, state="readonly", width=40)
+        self.model_combo.grid(row=2, column=1, sticky="w", pady=(0, 8))
+
+        # Location (required)
+        ttk.Label(frm, text="Location (required):").grid(row=3, column=0, sticky="e", padx=(0, 6))
+        self.location_combo = ttk.Combobox(frm, textvariable=self.location_var, state="readonly", width=40)
+        self.location_combo.grid(row=3, column=1, sticky="w", pady=(0, 8))
+
+        # AssetNumber (optional)
+        ttk.Label(frm, text="AssetNumber (optional):").grid(row=4, column=0, sticky="e", padx=(0, 6))
+        self.asset_combo = ttk.Combobox(frm, textvariable=self.asset_var, state="readonly", width=40)
+        self.asset_combo.grid(row=4, column=1, sticky="w", pady=(0, 8))
+
+        # Required checkbox
+        ttk.Checkbutton(frm, text="Required", variable=self.required_var).grid(row=5, column=1, sticky="w", pady=(0, 8))
+
+        # Notes
+        ttk.Label(frm, text="Notes:").grid(row=6, column=0, sticky="ne", padx=(0, 6))
+        self.notes_entry = tk.Text(frm, height=3, width=50)
+        self.notes_entry.grid(row=6, column=1, sticky="w", pady=(0, 8))
+
+        # Effective dates
+        dates_frame = ttk.Frame(frm)
+        dates_frame.grid(row=7, column=0, columnspan=2, sticky="w")
+        ttk.Label(dates_frame, text="Effective Start (YYYY-MM-DD):").grid(row=0, column=0, sticky="e", padx=(0,6))
+        ttk.Entry(dates_frame, textvariable=self.eff_start_var, width=18).grid(row=0, column=1, sticky="w")
+        ttk.Label(dates_frame, text="Effective End (YYYY-MM-DD):").grid(row=0, column=2, sticky="e", padx=(12,6))
+        ttk.Entry(dates_frame, textvariable=self.eff_end_var, width=18).grid(row=0, column=3, sticky="w")
+
+        # Buttons
+        btns = ttk.Frame(frm)
+        btns.grid(row=8, column=0, columnspan=4, sticky="e", pady=(10, 0))
+        ttk.Button(btns, text="Skip (Assign Later)", command=self._close).pack(side="right", padx=(6,0))
+        ttk.Button(btns, text="Save Assignment", command=self._save).pack(side="right")
+
+    # ---------- data loading ----------
+    def _load_models(self):
+        try:
+            # Resolve Model class
+            Model = self.session.registry._class_registry.get("Model")
+            if Model is None:
+                from db_main import Model as _Model  # adjust if your module name differs
+                Model = _Model
+
+            rows = self.session.query(Model).order_by(Model.id.asc()).all()
+            self._models = [(r.id, getattr(r, "name", str(r.id))) for r in rows]
+            self.model_combo["values"] = [name for (_, name) in self._models]
+            if self._models:
+                self.model_combo.current(0)
+                self._on_model_changed()
+        except Exception as e:
+            messagebox.showerror("Load Error", f"Failed to load Models: {e}")
+
+    def _load_locations_for_model(self, model_id):
+        try:
+            Location = self.session.registry._class_registry.get("Location")
+            if Location is None:
+                from db_main import Location as _Location
+                Location = _Location
+
+            q = self.session.query(Location)
+            # If Location has model_id, filter by it (adjust if different in your schema)
+            if hasattr(Location, "model_id"):
+                q = q.filter(Location.model_id == model_id)
+            rows = q.order_by(Location.id.asc()).all()
+            self._locations = [(r.id, getattr(r, "name", str(r.id))) for r in rows]
+            self.location_combo["values"] = [name for (_, name) in self._locations]
+            self.location_var.set("")
+            if self._locations:
+                self.location_combo.current(0)
+        except Exception as e:
+            messagebox.showerror("Load Error", f"Failed to load Locations: {e}")
+
+    def _load_assets_for_model(self, model_id):
+        try:
+            AssetNumber = self.session.registry._class_registry.get("AssetNumber")
+            if AssetNumber is None:
+                from db_main import AssetNumber as _AssetNumber
+                AssetNumber = _AssetNumber
+
+            q = self.session.query(AssetNumber)
+            if hasattr(AssetNumber, "model_id"):
+                q = q.filter(AssetNumber.model_id == model_id)
+            rows = q.order_by(AssetNumber.id.asc()).all()
+
+            def _label(r):
+                for cand in ("number", "code", "asset_code", "asset_number", "name", "label"):
+                    if hasattr(r, cand) and getattr(r, cand):
+                        return str(getattr(r, cand))
+                return str(r.id)
+
+            self._assets = [(r.id, _label(r)) for r in rows]
+            self.asset_combo["values"] = [name for (_, name) in self._assets]
+            self.asset_var.set("")
+        except Exception as e:
+            messagebox.showerror("Load Error", f"Failed to load AssetNumbers: {e}")
+
+    # ---------- events ----------
+    def _on_model_changed(self, event=None):
+        idx = self.model_combo.current()
+        if idx < 0 or idx >= len(self._models):
+            self._locations, self._assets = [], []
+            self.location_combo["values"] = []
+            self.asset_combo["values"] = []
+            self.location_var.set("")
+            self.asset_var.set("")
+            return
+        model_id = self._models[idx][0]
+        self._load_locations_for_model(model_id)
+        self._load_assets_for_model(model_id)
+
+    # ---------- save ----------
+    def _save(self):
+        midx = self.model_combo.current()
+        lidx = self.location_combo.current()
+
+        if midx < 0:
+            messagebox.showwarning("Missing Model", "Please select a Model.")
+            return
+        if lidx < 0:
+            messagebox.showwarning("Missing Location", "Please select a Location.")
+            return
+
+        model_id = self._models[midx][0]
+        location_id = self._locations[lidx][0]
+
+        asset_id = None
+        aidx = self.asset_combo.current()
+        if aidx >= 0:
+            asset_id = self._assets[aidx][0]
+
+        # Parse dates
+        def _parse_date(s):
+            s = (s or "").strip()
+            if not s:
+                return None
+            try:
+                return datetime.strptime(s, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError(f"Invalid date '{s}'. Use YYYY-MM-DD.")
+
+        try:
+            eff_start = _parse_date(self.eff_start_var.get())
+            eff_end = _parse_date(self.eff_end_var.get())
+        except ValueError as ve:
+            messagebox.showerror("Date Error", str(ve))
+            return
+
+        try:
+            from db_main import CompetencyLocation  # adjust import path if needed
+
+            # App-level duplicate guard (works even without UniqueConstraint)
+            existing = (self.session.query(CompetencyLocation)
+                        .filter(CompetencyLocation.model_id == model_id,
+                                CompetencyLocation.location_id == location_id,
+                                CompetencyLocation.competency_id == self.competency.id,
+                                CompetencyLocation.asset_number_id == asset_id)
+                        .first())
+            if existing:
+                messagebox.showinfo("Already Assigned", "This competency is already assigned to that Model/Location/Asset.")
+                self._close()
+                return
+
+            row = CompetencyLocation(
+                model_id=model_id,
+                location_id=location_id,
+                competency_id=self.competency.id,
+                asset_number_id=asset_id,
+                required=bool(self.required_var.get()),
+                notes=(self.notes_entry.get("1.0", "end").strip() or None),
+                effective_start=eff_start,
+                effective_end=eff_end
+            )
+            self.session.add(row)
+            self.session.commit()
+
+            messagebox.showinfo("Saved", "Competency assignment saved.")
+            if self.on_done:
+                self.on_done()
+            self._close()
+
+        except Exception as e:
+            self.session.rollback()
+            messagebox.showerror("Save Error", f"Failed to save: {e}")
+
+    def _close(self):
+        self.grab_release()
+        self.destroy()
+
+
 
 
 if __name__ == "__main__":
