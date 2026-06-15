@@ -1,7 +1,8 @@
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import time, datetime,date
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Time, Date, Numeric, func, or_
+from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime, Time, Date,
+                        Numeric, func, or_,Index,UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -722,3 +723,98 @@ class AttendanceIssue(Base):
     # Relationships
     employee = relationship("Employee")
     attendance_record = relationship("AttendanceRecord")
+
+
+class CompetencyLocation(Base):
+    __tablename__ = "competency_location"
+
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("model.id", ondelete="CASCADE"), nullable=False)
+    location_id = Column(Integer, ForeignKey("location.id", ondelete="CASCADE"), nullable=False)
+    competency_id = Column(Integer, ForeignKey("core_competencies.id", ondelete="CASCADE"), nullable=False)
+    asset_number_id = Column(Integer, ForeignKey("asset_number.id", ondelete="CASCADE"), nullable=True)  # optional
+
+    required = Column(Boolean, default=True)
+    notes = Column(String)
+    effective_start = Column(Date)
+    effective_end = Column(Date)
+
+    # Relationships
+    model = relationship("Model")
+    location = relationship("Location")
+    asset_number = relationship("AssetNumber")  # optional, may be NULL
+    competency = relationship("CoreCompetency")  # your existing core competency table
+
+    __table_args__ = (
+        Index("ix_competency_location_model_loc_comp", "model_id", "location_id", "competency_id"),
+        # optional: enforce no duplicates for model-wide vs asset-specific scope at app-level or via partial index
+    )
+
+# -------------------------------------------------------
+# Main Equipment Model
+# -------------------------------------------------------
+class Model(Base):
+    __tablename__ = "model"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False, unique=True)         # e.g., "Bag Sealer"
+    description = Column(String)
+    is_active = Column(Boolean, default=True)
+
+    # Relationships
+    locations = relationship(
+        "Location",
+        back_populates="model",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    assets = relationship(
+        "AssetNumber",
+        back_populates="model",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    def __repr__(self):
+        return f"<Model(name={self.name})>"
+
+
+# -------------------------------------------------------
+# Standardized Locations for a Model
+# -------------------------------------------------------
+class Location(Base):
+    __tablename__ = "location"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)                      # e.g., "Infeed Sensor Bracket"
+    description = Column(String)
+    model_id = Column(Integer, ForeignKey("model.id", ondelete="CASCADE"), nullable=False)
+
+    model = relationship("Model", back_populates="locations")
+
+    __table_args__ = (
+        UniqueConstraint("model_id", "name", name="uq_location_model_name"),
+        Index("ix_location_model_id_name", "model_id", "name"),
+    )
+
+    def __repr__(self):
+        return f"<Location(name={self.name}, model={self.model.name})>"
+
+# -------------------------------------------------------
+# Physical Asset Instance of a Model
+# -------------------------------------------------------
+class AssetNumber(Base):
+    __tablename__ = "asset_number"
+
+    id = Column(Integer, primary_key=True)
+    number = Column(String, nullable=False, unique=True)       # e.g., "221-01"
+    description = Column(String)
+    model_id = Column(Integer, ForeignKey("model.id", ondelete="CASCADE"), nullable=False)
+
+    model = relationship("Model", back_populates="assets")
+
+    __table_args__ = (Index("ix_asset_number_number", "number"),)
+
+    def __repr__(self):
+        return f"<AssetNumber(number={self.number}, model={self.model.name})>"
