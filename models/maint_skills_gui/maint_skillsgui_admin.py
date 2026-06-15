@@ -5690,7 +5690,13 @@ class StepUpEvalTab(ttk.Frame):
         self.grid_columnconfigure(0, weight=1)
 
         # Create main canvas and scrollbar for vertical scrolling
-        self.canvas = tk.Canvas(self)
+        palette = getattr(self, "_PALETTE", {})
+        self.canvas = tk.Canvas(
+            self,
+            bg=palette.get('bg', '#f3f6fb'),
+            highlightthickness=0,
+            bd=0
+        )
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
 
@@ -6038,22 +6044,24 @@ class StepUpEvalTab(ttk.Frame):
         self.refresh_eval_list()
 
     def apply_stepup_theme(self):
-        """Dark theme with soft-grey form fields; works with ttk (no bg config on ttk widgets)."""
+        """Light professional theme; works with ttk (no bg config on ttk widgets)."""
         import tkinter as tk
         from tkinter import ttk
 
         PALETTE = {
-            'bg': '#0f172a',  # window / tab background
-            'panel': '#0b1223',
-            'panel2': '#0c1327',
-            'text': '#d1d5db',  # soft light grey (not white)
-            'muted': '#9ca3af',
-            'accent': '#60a5fa',
-            'accent2': '#a5b4fc',
-            'line': '#1f2a44',
-            'hover': '#1e293b',
-            'entry': '#1e293b',  # <-- soft grey for inputs
-            'trough': '#1f2937',
+            'bg': '#f3f6fb',
+            'panel': '#ffffff',
+            'panel2': '#e8eef7',
+            'text': '#1f2937',
+            'muted': '#64748b',
+            'accent': '#2563eb',
+            'accent2': '#1d4ed8',
+            'line': '#cbd5e1',
+            'hover': '#dbeafe',
+            'entry': '#ffffff',
+            'disabled': '#f1f5f9',
+            'trough': '#e5e7eb',
+            'selected_text': '#ffffff',
         }
         self._PALETTE = PALETTE  # (optional) so you can reuse it elsewhere
 
@@ -6064,7 +6072,7 @@ class StepUpEvalTab(ttk.Frame):
             pass
 
         # ----- Base containers -----
-        # Give THIS tab/frame a dark background via a custom style (ttk requires styles, not bg=)
+        # Give THIS tab/frame a light background via a custom style (ttk requires styles, not bg=)
         style.configure('StepUpEval.TFrame', background=PALETTE['bg'])
         self.configure(style='StepUpEval.TFrame')
 
@@ -6074,16 +6082,29 @@ class StepUpEvalTab(ttk.Frame):
         style.configure('TLabelframe', background=PALETTE['panel'], bordercolor=PALETTE['line'])
         style.configure('TLabelframe.Label', background=PALETTE['panel'], foreground=PALETTE['accent2'])
         style.configure('TLabel', background=PALETTE['panel'], foreground=PALETTE['text'])
+        style.configure('TCheckbutton', background=PALETTE['panel'], foreground=PALETTE['text'])
         style.configure('Separator', background=PALETTE['line'])
 
         # Notebook (since we cannot set bg directly on ttk.Notebook)
         style.configure('TNotebook', background=PALETTE['bg'], borderwidth=0)
-        style.configure('TNotebook.Tab', background=PALETTE['panel2'], foreground=PALETTE['muted'], padding=[10, 5])
+        style.configure('TNotebook.Tab', background=PALETTE['panel2'], foreground=PALETTE['muted'], padding=[12, 6])
         style.map('TNotebook.Tab',
                   background=[('selected', PALETTE['panel'])],
                   foreground=[('selected', PALETTE['accent2'])])
 
-        # ----- Inputs: Entry / Combobox (soft grey fields) -----
+        # ----- Buttons -----
+        style.configure('TButton',
+                        background=PALETTE['panel2'],
+                        foreground=PALETTE['text'],
+                        bordercolor=PALETTE['line'],
+                        focusthickness=1,
+                        focuscolor=PALETTE['accent'],
+                        padding=[10, 5])
+        style.map('TButton',
+                  background=[('active', PALETTE['hover']), ('pressed', '#bfdbfe'), ('disabled', PALETTE['disabled'])],
+                  foreground=[('disabled', PALETTE['muted'])])
+
+        # ----- Inputs: Entry / Combobox -----
         base_field_opts = dict(
             fieldbackground=PALETTE['entry'],
             background=PALETTE['entry'],
@@ -6094,13 +6115,13 @@ class StepUpEvalTab(ttk.Frame):
         )
         style.configure('TEntry', **base_field_opts)
         style.map('TEntry',
-                  fieldbackground=[('disabled', '#18212f')],
+                  fieldbackground=[('disabled', PALETTE['disabled'])],
                   foreground=[('disabled', PALETTE['muted'])])
 
         style.configure('TCombobox', **base_field_opts, arrowcolor=PALETTE['accent'])
         # Ensure readonly Combobox uses the same soft grey in most themes
         style.map('TCombobox',
-                  fieldbackground=[('readonly', PALETTE['entry']), ('disabled', '#18212f')],
+                  fieldbackground=[('readonly', PALETTE['entry']), ('disabled', PALETTE['disabled'])],
                   foreground=[('readonly', PALETTE['text']), ('disabled', PALETTE['muted'])])
 
         # Classic tk widgets (used by your inline edit popup and Text widgets)
@@ -6117,7 +6138,7 @@ class StepUpEvalTab(ttk.Frame):
         top.option_add('*Listbox.background', PALETTE['entry'])
         top.option_add('*Listbox.foreground', PALETTE['text'])
 
-        # ----- Treeview (table) soft grey bg -----
+        # ----- Treeview (table) -----
 
     def create_shift_info_section(self):
         """Create a dedicated shift information section (same layout as before, themed)."""
@@ -6125,7 +6146,7 @@ class StepUpEvalTab(ttk.Frame):
         from tkinter import ttk
 
         PALETTE = getattr(self, "_PALETTE", {
-            'entry': '#1e293b', 'text': '#d1d5db', 'accent': '#60a5fa'
+            'entry': '#ffffff', 'text': '#1f2937', 'accent': '#2563eb'
         })
 
         # Shift information frame
@@ -6175,22 +6196,24 @@ class StepUpEvalTab(ttk.Frame):
         schedule_scrollbar.grid(row=0, column=1, sticky="ns")
 
     def apply_stepup_theme(self):
-        """Dark theme with soft-grey form fields; works with ttk (no bg config on ttk widgets)."""
+        """Light professional theme; works with ttk (no bg config on ttk widgets)."""
         import tkinter as tk
         from tkinter import ttk
 
         PALETTE = {
-            'bg': '#0f172a',  # window / tab background
-            'panel': '#0b1223',
-            'panel2': '#0c1327',
-            'text': '#d1d5db',  # soft light grey (not white)
-            'muted': '#9ca3af',
-            'accent': '#60a5fa',
-            'accent2': '#a5b4fc',
-            'line': '#1f2a44',
-            'hover': '#1e293b',
-            'entry': '#1e293b',  # <-- soft grey for inputs
-            'trough': '#1f2937',
+            'bg': '#f3f6fb',
+            'panel': '#ffffff',
+            'panel2': '#e8eef7',
+            'text': '#1f2937',
+            'muted': '#64748b',
+            'accent': '#2563eb',
+            'accent2': '#1d4ed8',
+            'line': '#cbd5e1',
+            'hover': '#dbeafe',
+            'entry': '#ffffff',
+            'disabled': '#f1f5f9',
+            'trough': '#e5e7eb',
+            'selected_text': '#ffffff',
         }
         self._PALETTE = PALETTE  # (optional) so you can reuse it elsewhere
 
@@ -6201,7 +6224,7 @@ class StepUpEvalTab(ttk.Frame):
             pass
 
         # ----- Base containers -----
-        # Give THIS tab/frame a dark background via a custom style (ttk requires styles, not bg=)
+        # Give THIS tab/frame a light background via a custom style (ttk requires styles, not bg=)
         style.configure('StepUpEval.TFrame', background=PALETTE['bg'])
         self.configure(style='StepUpEval.TFrame')
 
@@ -6211,16 +6234,29 @@ class StepUpEvalTab(ttk.Frame):
         style.configure('TLabelframe', background=PALETTE['panel'], bordercolor=PALETTE['line'])
         style.configure('TLabelframe.Label', background=PALETTE['panel'], foreground=PALETTE['accent2'])
         style.configure('TLabel', background=PALETTE['panel'], foreground=PALETTE['text'])
+        style.configure('TCheckbutton', background=PALETTE['panel'], foreground=PALETTE['text'])
         style.configure('Separator', background=PALETTE['line'])
 
         # Notebook (since we cannot set bg directly on ttk.Notebook)
         style.configure('TNotebook', background=PALETTE['bg'], borderwidth=0)
-        style.configure('TNotebook.Tab', background=PALETTE['panel2'], foreground=PALETTE['muted'], padding=[10, 5])
+        style.configure('TNotebook.Tab', background=PALETTE['panel2'], foreground=PALETTE['muted'], padding=[12, 6])
         style.map('TNotebook.Tab',
                   background=[('selected', PALETTE['panel'])],
                   foreground=[('selected', PALETTE['accent2'])])
 
-        # ----- Inputs: Entry / Combobox (soft grey fields) -----
+        # ----- Buttons -----
+        style.configure('TButton',
+                        background=PALETTE['panel2'],
+                        foreground=PALETTE['text'],
+                        bordercolor=PALETTE['line'],
+                        focusthickness=1,
+                        focuscolor=PALETTE['accent'],
+                        padding=[10, 5])
+        style.map('TButton',
+                  background=[('active', PALETTE['hover']), ('pressed', '#bfdbfe'), ('disabled', PALETTE['disabled'])],
+                  foreground=[('disabled', PALETTE['muted'])])
+
+        # ----- Inputs: Entry / Combobox -----
         base_field_opts = dict(
             fieldbackground=PALETTE['entry'],
             background=PALETTE['entry'],
@@ -6231,13 +6267,13 @@ class StepUpEvalTab(ttk.Frame):
         )
         style.configure('TEntry', **base_field_opts)
         style.map('TEntry',
-                  fieldbackground=[('disabled', '#18212f')],
+                  fieldbackground=[('disabled', PALETTE['disabled'])],
                   foreground=[('disabled', PALETTE['muted'])])
 
         style.configure('TCombobox', **base_field_opts, arrowcolor=PALETTE['accent'])
         # Ensure readonly Combobox uses the same soft grey in most themes
         style.map('TCombobox',
-                  fieldbackground=[('readonly', PALETTE['entry']), ('disabled', '#18212f')],
+                  fieldbackground=[('readonly', PALETTE['entry']), ('disabled', PALETTE['disabled'])],
                   foreground=[('readonly', PALETTE['text']), ('disabled', PALETTE['muted'])])
 
         # Classic tk widgets (used by your inline edit popup and Text widgets)
@@ -6254,7 +6290,7 @@ class StepUpEvalTab(ttk.Frame):
         top.option_add('*Listbox.background', PALETTE['entry'])
         top.option_add('*Listbox.foreground', PALETTE['text'])
 
-        # ----- Treeview (table) soft grey bg -----
+        # ----- Treeview (table) -----
         style.configure('Treeview',
                         background=PALETTE['entry'],
                         fieldbackground=PALETTE['entry'],
@@ -6266,8 +6302,8 @@ class StepUpEvalTab(ttk.Frame):
                         foreground=PALETTE['accent2'],
                         bordercolor=PALETTE['line'])
         style.map('Treeview',
-                  background=[('selected', PALETTE['hover'])],
-                  foreground=[('selected', PALETTE['text'])])
+                  background=[('selected', PALETTE['accent'])],
+                  foreground=[('selected', PALETTE['selected_text'])])
 
         # ----- Progressbars -----
         style.configure('Horizontal.TProgressbar',
@@ -6275,7 +6311,7 @@ class StepUpEvalTab(ttk.Frame):
                         troughcolor=PALETTE['trough'],
                         bordercolor=PALETTE['line'])
 
-        # Keep your per-level bar colors but match the dark trough
+        # Keep your per-level bar colors but match the light trough
         for lvl in ["Level1", "Level2", "Level3", "MaintenanceTech"]:
             style.configure(f'{lvl}.Horizontal.TProgressbar', troughcolor=PALETTE['trough'])
 
@@ -6284,7 +6320,7 @@ class StepUpEvalTab(ttk.Frame):
         style.configure('Horizontal.TScrollbar', background=PALETTE['trough'], troughcolor=PALETTE['trough'])
 
         # ----- Canvas bg (tk widget — bg can be set safely AFTER you create it) -----
-        # If you want the canvas itself to be dark, set in __init__ right after creating it:
+        # If you want the canvas itself themed, set in __init__ right after creating it:
         # self.canvas.configure(bg=PALETTE['bg'])
 
         # ----- Ensure any already-created Text widgets get recolored (if theme called later) -----
