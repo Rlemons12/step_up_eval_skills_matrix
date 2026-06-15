@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Runtime data
+*.db
+*.db-journal
+logs/
+log_backup/
+
+# Local IDE state
+.idea/dataSources.xml
+.idea/db-forest-config.xml
+.idea/runConfigurations/
+
+# Duplicate/generated load-sheet exports
+/database/loadsheets/hydraulic_skills_mapping.xlsx
+/database/loadsheets/plc_skills_mapping.xlsx
+/database/loadsheets/merged_training_plans.csv
+/database/loadsheets/skills_matrix/merged_training_plans.csv
+/database/loadsheets/skills_matrix/merged_training_plans.xlsx
